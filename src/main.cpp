@@ -14,20 +14,24 @@ void imageRgbToHsv();
 void imageRgbToYiq();
 void blackWhite();
 void filterImage();
-
+void getFilterRange();
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
+int countFilter=0;
                                         // La escala de los 3 histogramas
 int h_scale[3] = {0,0,0};
 Mat currentImageRGB, currentImageHSV, currentImageYIQ;
 bool congelado = false;
                                         // r (RGB), h (HSV), y (YIQ)
 char modelo =  'r';
+bool filtrar = false;
                                         // Valor del pixel-clic en los 3 modelos
 int bgr_point[3] = {-1, -1, -1};
 int hsv_point[3] = {-1, -1, -1};
 int yiq_point[3] = {-1, -1, -1};
+int minFilter[3] = {257, 257, 257};
+int maxFilter[3] = {-1, -1, -1};
 
 
 
@@ -85,6 +89,16 @@ int main(int argc, char *argv[])
       case 'y':
         modelo = 'y';
         break;
+      case 'f':
+	filtrar = true;
+	countFilter =0;
+	minFilter[2] = 257;
+	minFilter[1] = 257;
+	minFilter[0] = 257;
+	maxFilter[2] = -1;
+	maxFilter[1] = -1;
+	maxFilter[0] = -1;
+	break;
       case ' ':
         congelado = !congelado;
         break;
@@ -295,13 +309,25 @@ void blackWhite()
 /*< Black and white and binary END >*/
 
 
+// referencia: https://docs.opencv.org/trunk/df/d9d/tutorial_py_colorspaces.html
 /*< Filter Image START >*/
-void filterImage()
-{
-                                        // Toma la imagen currentImageRGB y junto con el
-                                        // punto-clic filtra por umbrales para desaparecer
-                                        // los colores fuera del umbral. 
-                                        // referencia: https://docs.opencv.org/trunk/df/d9d/tutorial_py_colorspaces.html
+void filterImage(){
+	if(maxFilter[0] !=-1 && countFilter == 8){
+		int lowRed = minFilter[2];
+		int hiRed = maxFilter[2];
+		int lowGr =  minFilter[1];
+		int hiGr= maxFilter[1];
+		int lowBl=  minFilter[0];
+		int hiBl= maxFilter[0];
+		Mat mask;
+		Mat filter;
+		inRange((modelo =='r')? currentImageRGB : (modelo == 'h' ? currentImageHSV : currentImageYIQ), Scalar(lowBl,lowGr,lowRed),Scalar (hiBl,hiGr,hiRed),mask);
+		bitwise_and(currentImageRGB,currentImageRGB, filter,mask= mask);
+		imshow("Mask",mask);
+		imshow("Filter",filter);
+
+	}
+
 }
 /*< Filter Image END >*/
 
@@ -345,6 +371,55 @@ void imageRgbToYiq()
 }
 /*< RGB to YIQ image END >*/
 
+/* set max and min range for filters START*/
+void getFilterRange(){
+	switch(modelo){
+		case 'r':
+			if(bgr_point[0] < minFilter[0]){
+				minFilter[2] = bgr_point[2];
+				minFilter[1] = bgr_point[1];
+				minFilter[0] = bgr_point[0];
+			}
+		    	if(bgr_point[0] > maxFilter[0]){
+				maxFilter[2] = bgr_point[2];
+				maxFilter[1] = bgr_point[1];
+				maxFilter[0] = bgr_point[0];
+			}
+		break;
+		case 'h':
+			if(hsv_point[0] < minFilter[0]){
+				minFilter[2] = hsv_point[2];
+				minFilter[1] = hsv_point[1];
+				minFilter[0] = hsv_point[0];
+			}
+		    	if(hsv_point[0] > maxFilter[0]){
+				maxFilter[2] = hsv_point[2];
+				maxFilter[1] = hsv_point[1];
+				maxFilter[0] = hsv_point[0];
+			}
+		break;
+		case 'y':
+			if(yiq_point[0] < minFilter[0]){
+				minFilter[2] = yiq_point[2];
+				minFilter[1] = yiq_point[1];
+				minFilter[0] = yiq_point[0];
+			}
+		    	if(yiq_point[0] > maxFilter[0]){
+				maxFilter[2] = yiq_point[2];
+				maxFilter[1] = yiq_point[1];
+				maxFilter[0] = yiq_point[0];
+			}
+		break;
+	}
+		countFilter+=1;
+		cout<< countFilter <<endl;
+		if(countFilter == 8){	    
+			filtrar=false;
+			cout<<minFilter[0] <<endl;
+			cout<<maxFilter[0] <<endl;
+		}
+}
+/* set max and min range for filters START*/
 
 /*< Mouse callback START >*/
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param)
@@ -357,11 +432,14 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             int(currentImageRGB.at<Vec3b>(y, x)[1]) << ", " <<
             int(currentImageRGB.at<Vec3b>(y, x)[0]) ;
             cout << endl;
-            bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
+	    bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
             bgr_point[1] = int(currentImageRGB.at<Vec3b>(y, x)[1]);
             bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
             pointRgbToHsv();
             pointRgbToYiq();
+	if(filtrar){	    
+	    getFilterRange();
+	}
             break;
         case CV_EVENT_MOUSEMOVE:
             break;
