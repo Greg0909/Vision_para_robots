@@ -371,7 +371,7 @@ void imageRgbToYiq()
 }
 /*< RGB to YIQ image END >*/
 
-/* set max and min range for filters START*/
+/* max and min range for filters START*/
 void getFilterRange(){
 	switch(modelo){
 		case 'r':
@@ -419,7 +419,7 @@ void getFilterRange(){
 			cout<<maxFilter[0] <<endl;
 		}
 }
-/* set max and min range for filters START*/
+/* max and min range for filters START*/
 
 /*< Mouse callback START >*/
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param)
