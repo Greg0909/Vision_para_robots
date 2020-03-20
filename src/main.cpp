@@ -90,14 +90,20 @@ int main(int argc, char *argv[])
         modelo = 'y';
         break;
       case 'f':
-	filtrar = true;
-	countFilter =0;
-	minFilter[2] = 257;
-	minFilter[1] = 257;
-	minFilter[0] = 257;
-	maxFilter[2] = -1;
-	maxFilter[1] = -1;
-	maxFilter[0] = -1;
+      if(!filtrar)
+      {
+        cout << "reinicar filtro" << endl;
+      	filtrar = true;
+      	countFilter =0;
+      	minFilter[2] = 257;
+      	minFilter[1] = 257;
+      	minFilter[0] = 257;
+      	maxFilter[2] = -1;
+      	maxFilter[1] = -1;
+      	maxFilter[0] = -1;
+      }
+      else
+        filtrar = false;
 	break;
       case ' ':
         congelado = !congelado;
@@ -312,7 +318,8 @@ void blackWhite()
 // referencia: https://docs.opencv.org/trunk/df/d9d/tutorial_py_colorspaces.html
 /*< Filter Image START >*/
 void filterImage(){
-	if(maxFilter[0] !=-1 && countFilter == 8){
+	if(maxFilter[0] !=-1 && countFilter >= 2){
+    int epsilon = 10;
 		int lowRed = minFilter[2];
 		int hiRed = maxFilter[2];
 		int lowGr =  minFilter[1];
@@ -321,7 +328,7 @@ void filterImage(){
 		int hiBl= maxFilter[0];
 		Mat mask;
 		Mat filter;
-		inRange((modelo =='r')? currentImageRGB : (modelo == 'h' ? currentImageHSV : currentImageYIQ), Scalar(lowBl,lowGr,lowRed),Scalar (hiBl,hiGr,hiRed),mask);
+		inRange((modelo =='r')? currentImageRGB : (modelo == 'h' ? currentImageHSV : currentImageYIQ), Scalar(lowBl-epsilon,lowGr-epsilon,lowRed-epsilon),Scalar (hiBl+epsilon,hiGr+epsilon,hiRed+epsilon),mask);
 		bitwise_and(currentImageRGB,currentImageRGB, filter,mask= mask);
 		imshow("Mask",mask);
 		imshow("Filter",filter);
@@ -376,15 +383,27 @@ void getFilterRange(){
 	switch(modelo){
 		case 'r':
 			if(bgr_point[0] < minFilter[0]){
-				minFilter[2] = bgr_point[2];
-				minFilter[1] = bgr_point[1];
 				minFilter[0] = bgr_point[0];
+        minFilter[1] = bgr_point[1];
+        minFilter[2] = bgr_point[2];
 			}
-		    	if(bgr_point[0] > maxFilter[0]){
-				maxFilter[2] = bgr_point[2];
-				maxFilter[1] = bgr_point[1];
+		  if(bgr_point[0] > maxFilter[0]){
 				maxFilter[0] = bgr_point[0];
+        maxFilter[1] = bgr_point[1];
+        maxFilter[2] = bgr_point[2];
 			}
+      /*if(bgr_point[1] < minFilter[1]){
+        minFilter[1] = bgr_point[1];
+      }
+      if(bgr_point[1] > maxFilter[1]){
+        maxFilter[1] = bgr_point[1];
+      }
+      if(bgr_point[2] < minFilter[2]){
+        minFilter[2] = bgr_point[2];
+      }
+      if(bgr_point[2] > maxFilter[2]){
+        maxFilter[2] = bgr_point[2];
+      }*/
 		break;
 		case 'h':
 			if(hsv_point[0] < minFilter[0]){
@@ -414,9 +433,9 @@ void getFilterRange(){
 		countFilter+=1;
 		cout<< countFilter <<endl;
 		if(countFilter == 8){	    
-			filtrar=false;
-			cout<<minFilter[0] <<endl;
-			cout<<maxFilter[0] <<endl;
+			//filtrar=false;
+			cout<< "EL umbrall minio es " << minFilter[0] <<endl;
+			cout<< "EL umbrall maximo es " << maxFilter[0] <<endl;
 		}
 }
 /* max and min range for filters START*/
@@ -432,7 +451,8 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             int(currentImageRGB.at<Vec3b>(y, x)[1]) << ", " <<
             int(currentImageRGB.at<Vec3b>(y, x)[0]) ;
             cout << endl;
-	    bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
+	         
+            bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
             bgr_point[1] = int(currentImageRGB.at<Vec3b>(y, x)[1]);
             bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
             pointRgbToHsv();
