@@ -3,6 +3,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+//#include <algorithm>
+
 using namespace std;
 using namespace cv;
 
@@ -15,6 +17,9 @@ void imageRgbToYiq();
 void blackWhite();
 void filterImage();
 void getFilterRange();
+void pointRgbToHsv(int r, int g, int b);
+void printPoint(char colormodel);
+
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -28,7 +33,7 @@ char modelo =  'r';
 bool filtrar = false;
                                         // Valor del pixel-clic en los 3 modelos
 int bgr_point[3] = {-1, -1, -1};
-int hsv_point[3] = {-1, -1, -1};
+float hsv_point[3] = {-1, -1, -1};
 int yiq_point[3] = {-1, -1, -1};
 int minFilter[3] = {257, 257, 257};
 int maxFilter[3] = {-1, -1, -1};
@@ -36,23 +41,23 @@ int maxFilter[3] = {-1, -1, -1};
 
 
 /*< Main START >*/
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
   namedWindow("Original");
   setMouseCallback("Original", mouseCoordinatesExampleCallback);
-  VideoCapture camera = VideoCapture(0);
+  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  VideoCapture camera("Videotest");     //Comment for real camera usage
   bool isCameraAvailable = camera.isOpened();
-  
                                         // Limpia la terminal
   cout << "\033[2J\033[1;1H";
   cout << "Basic Show Image \t|\tUse 'x' or 'Esc' to terminate execution\n";
 
-  while (true) 
+  while (true)
   {
                                         // Obtiene un nuevo Frame de la camara si "congelado" es falso
                                         // y grafica los 3 histogramas del modelo que esta actualmente
                                         // seleccionado.
-    if (isCameraAvailable) 
+    if (isCameraAvailable)
     {
       if(!congelado)
       {
@@ -63,8 +68,8 @@ int main(int argc, char *argv[])
       plotHistograms();
       blackWhite();
       filterImage();
-    } 
-    else 
+    }
+    else
     {
       currentImageRGB = imread("PlaceholderImage.jpg", CV_LOAD_IMAGE_COLOR);
     }
@@ -112,6 +117,7 @@ int main(int argc, char *argv[])
                                         // Si 'x' o ESC es presionada el programa termina
     if(key == 'x' || key == 27 )        // 27 = ESC
     {
+      destroyAllWindows(); //Cierra todas las ventanas
       break;
     }
 
@@ -178,7 +184,7 @@ void plotHistograms()
       destroyWindow("Histo_V");
       break;
   }
-  
+
 }
 /*< Plot Histograms END >*/
 
@@ -337,17 +343,43 @@ void filterImage(){
 
 }
 /*< Filter Image END >*/
-
-
 /*< RGB to HSV point START >*/
-void pointRgbToHsv()
+// Reference https://www.tutorialspoint.com/c-program-to-change-rgb-color-model-to-hsv-color-model
+// REsult verified with https://www.rapidtables.com/convert/color/rgb-to-hsv.html
+void pointRgbToHsv(int r, int g, int b)
 {
-                                        // Toma los valores del arreglo "bgr_point"
-                                        // para convertirlos a valores hsv y guardarlos
-                                        // en el arreglo "hsv_point"
+  double rgb_point_double[3] = {22, 22, 22};
+  double minMaxColors[2] ={0,0};
+  double diff;
+  rgb_point_double[0] = r/ 255.0;
+  rgb_point_double[1] = g/255.0;
+  rgb_point_double[2] = b/255.0;
+
+  //Move this to a function
+  minMaxColors[0] = min(rgb_point_double[0],min(rgb_point_double[1],rgb_point_double[2]));
+  minMaxColors[1] = max(rgb_point_double[0],max(rgb_point_double[1],rgb_point_double[2]));
+  //Move this to a function
+
+  //minMax(rgb_point_double, minMaxColors);
+  diff = minMaxColors[1]-minMaxColors[0];
+  hsv_point[2]  = minMaxColors[1] * 100;
+  if (minMaxColors[1] == 0){
+    hsv_point[1] = 0;
+  }
+  else{
+    hsv_point[1] = (diff / minMaxColors[1]) * 100;
+  }
+  if(minMaxColors[0] == minMaxColors[1]){
+    hsv_point[0] = 0;
+  }else if(minMaxColors[1] == rgb_point_double[0] ){
+    hsv_point[0]  = fmod((60 * ((rgb_point_double[1]  - rgb_point_double[2] ) / diff) + 360), 360.0);
+  }else if(minMaxColors[1] == rgb_point_double[1] ){
+    hsv_point[0]  = fmod((60 * ((rgb_point_double[2]  - rgb_point_double[0] ) / diff) + 120), 360.0);
+  }else if(minMaxColors[1]== rgb_point_double[2] ){
+    hsv_point[0]  = fmod((60 * ((rgb_point_double[0]  - rgb_point_double[1] ) / diff) + 240), 360.0);
+  }
 }
 /*< RGB to HSV point END >*/
-
 
 /*< RGB to YIQ point START >*/
 void pointRgbToYiq()
@@ -362,9 +394,8 @@ void pointRgbToYiq()
 /*< RGB to HSV image START >*/
 void imageRgbToHsv()
 {
-                                        // Toma los valores de la matriz "currentImageRGB"
-                                        // para convertirlos a valores hsv y guardarlos
-                                        // en la matriz "currentImageHSV"
+
+
 }
 /*< RGB to HSV image END >*/
 
@@ -432,13 +463,28 @@ void getFilterRange(){
 	}
 		countFilter+=1;
 		cout<< countFilter <<endl;
-		if(countFilter == 8){	    
+		if(countFilter == 8){
 			//filtrar=false;
-			cout<< "EL umbrall minio es " << minFilter[0] <<endl;
+			cout<< "EL umbrall minimo es " << minFilter[0] <<endl;
 			cout<< "EL umbrall maximo es " << maxFilter[0] <<endl;
 		}
 }
-/* max and min range for filters START*/
+/* max and min range for filters END*/
+
+void printPoint(char colormodel){
+  switch(colormodel){
+    case 'r':
+      cout <<"\t\t RGB " << bgr_point[2] << ", " << bgr_point[1] <<", " << bgr_point[0] << endl;
+      break;
+    case 'h':
+      cout << "\t\t HSV " << hsv_point[0] << ", " << hsv_point[1] <<", " << hsv_point[2] << endl;
+      break;
+    case 'y':
+    cout <<"\t\t YIQ " << yiq_point[0] << ", " << yiq_point[1] <<", " << yiq_point[2] << endl;
+      break;
+  }
+
+}
 
 /*< Mouse callback START >*/
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param)
@@ -446,18 +492,17 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
     switch (event)
     {
         case CV_EVENT_LBUTTONDOWN:
-            cout << "  Mouse X, Y: " << x << ", " << y << "\tRGB " << 
-            int(currentImageRGB.at<Vec3b>(y, x)[2]) << ", " <<
-            int(currentImageRGB.at<Vec3b>(y, x)[1]) << ", " <<
-            int(currentImageRGB.at<Vec3b>(y, x)[0]) ;
-            cout << endl;
-	         
             bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
             bgr_point[1] = int(currentImageRGB.at<Vec3b>(y, x)[1]);
             bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
-            pointRgbToHsv();
+            cout << "  Mouse X, Y: " << x << ", " << y << endl;
+            printPoint('r');
+            pointRgbToHsv(bgr_point[2], bgr_point[1], bgr_point[0]);
+            printPoint('h');
             pointRgbToYiq();
-	if(filtrar){	    
+            printPoint('y');
+
+	if(filtrar){
 	    getFilterRange();
 	}
             break;
