@@ -12,14 +12,14 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channels, Scalar c
 void flipImageBasic(const Mat &sourceImage, Mat &destinationImage);
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param);
 void plotHistograms();
-void imageRgbToHsv();
 void imageRgbToYiq();
 void blackWhite();
 void filterImage();
 void getFilterRange();
 void pointRgbToHsv(int r, int g, int b);
+void pointRgbToYiq(int r, int g, int b);
 void printPoint(char colormodel);
-
+void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage);
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -34,7 +34,7 @@ bool filtrar = false;
                                         // Valor del pixel-clic en los 3 modelos
 int bgr_point[3] = {-1, -1, -1};
 float hsv_point[3] = {-1, -1, -1};
-int yiq_point[3] = {-1, -1, -1};
+float yiq_point[3] = {-1, -1, -1};
 int minFilter[3] = {257, 257, 257};
 int maxFilter[3] = {-1, -1, -1};
 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
       if(!congelado)
       {
         camera.read(currentImageRGB);
-        imageRgbToHsv();
+        imageRgbToHsv(currentImageRGB, currentImageHSV);
         imageRgbToYiq();
       }
       plotHistograms();
@@ -204,7 +204,6 @@ void flipImageBasic(const Mat &sourceImage, Mat &destinationImage)
       }
 }
 /*< Flip image END >*/
-
 
 /*< Histograma START >*/
 void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar color, int point_val)
@@ -382,19 +381,20 @@ void pointRgbToHsv(int r, int g, int b)
 /*< RGB to HSV point END >*/
 
 /*< RGB to YIQ point START >*/
-void pointRgbToYiq()
+// Reference https://www.eembc.org/techlit/datasheets/yiq_consumer.pdf
+void pointRgbToYiq(int r, int g, int b)
 {
-                                        // Toma los valores del arreglo "bgr_point"
-                                        // para convertirlos a valores hsv y guardarlos
-                                        // en el arreglo "hsv_point"
+  double Y, I, Q;
+  yiq_point[0] = (0.299*r + 0.587*g + 0.114*b)/255;
+  yiq_point[1] = (0.596*r - 0.275*g - 0.321*b)/255;
+  yiq_point[2] = (0.212*r - 0.523*g + 0.311*b)/255;
 }
 /*< RGB to YIQ point END >*/
 
 
 /*< RGB to HSV image START >*/
-void imageRgbToHsv()
+void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage)
 {
-
 
 }
 /*< RGB to HSV image END >*/
@@ -499,7 +499,7 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             printPoint('r');
             pointRgbToHsv(bgr_point[2], bgr_point[1], bgr_point[0]);
             printPoint('h');
-            pointRgbToYiq();
+            pointRgbToYiq(bgr_point[2], bgr_point[1], bgr_point[0]);
             printPoint('y');
 
 	if(filtrar){
