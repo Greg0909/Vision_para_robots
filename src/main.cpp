@@ -16,8 +16,10 @@ void imageRgbToYiq();
 void blackWhite();
 void filterImage();
 void getFilterRange();
-void pointRgbToHsv(int r, int g, int b);
-void pointRgbToYiq(int r, int g, int b);
+void clickRgbToHsv();
+void pixelRgbToHsv(int r, int g, int b, float *hsv);
+void clickRgbToYiq();
+void pixelRgbToYiq(int r, int g, int b, float *yiq);
 void printPoint(char colormodel);
 void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage);
                                         // VARIABLES GLOBALES
@@ -351,10 +353,22 @@ void filterImage(){
 
 }
 /*< Filter Image END >*/
-/*< RGB to HSV point START >*/
+
+
+/*< RGB to HSV of click START >*/
 // Reference https://www.tutorialspoint.com/c-program-to-change-rgb-color-model-to-hsv-color-model
 // REsult verified with https://www.rapidtables.com/convert/color/rgb-to-hsv.html
-void pointRgbToHsv(int r, int g, int b)
+void clickRgbToHsv()
+{
+  pixelRgbToHsv(bgr_point[2], bgr_point[1], bgr_point[0], hsv_point);
+}
+/*< RGB to HSV of click END >*/
+
+
+/*< RGB to HSV of one pixel START >*/
+// Reference https://www.tutorialspoint.com/c-program-to-change-rgb-color-model-to-hsv-color-model
+// REsult verified with https://www.rapidtables.com/convert/color/rgb-to-hsv.html
+void pixelRgbToHsv(int r, int g, int b, float *hsv)
 {
   double rgb_point_double[3] = {22, 22, 22};
   double minMaxColors[2] ={0,0};
@@ -370,35 +384,42 @@ void pointRgbToHsv(int r, int g, int b)
 
   //minMax(rgb_point_double, minMaxColors);
   diff = minMaxColors[1]-minMaxColors[0];
-  hsv_point[2]  = minMaxColors[1] * 100;
+  hsv[2]  = minMaxColors[1] * 100;
   if (minMaxColors[1] == 0){
-    hsv_point[1] = 0;
+    hsv[1] = 0;
   }
   else{
-    hsv_point[1] = (diff / minMaxColors[1]) * 100;
+    hsv[1] = (diff / minMaxColors[1]) * 100;
   }
   if(minMaxColors[0] == minMaxColors[1]){
-    hsv_point[0] = 0;
+    hsv[0] = 0;
   }else if(minMaxColors[1] == rgb_point_double[0] ){
-    hsv_point[0]  = fmod((60 * ((rgb_point_double[1]  - rgb_point_double[2] ) / diff) + 360), 360.0);
+    hsv[0]  = fmod((60 * ((rgb_point_double[1]  - rgb_point_double[2] ) / diff) + 360), 360.0);
   }else if(minMaxColors[1] == rgb_point_double[1] ){
-    hsv_point[0]  = fmod((60 * ((rgb_point_double[2]  - rgb_point_double[0] ) / diff) + 120), 360.0);
+    hsv[0]  = fmod((60 * ((rgb_point_double[2]  - rgb_point_double[0] ) / diff) + 120), 360.0);
   }else if(minMaxColors[1]== rgb_point_double[2] ){
-    hsv_point[0]  = fmod((60 * ((rgb_point_double[0]  - rgb_point_double[1] ) / diff) + 240), 360.0);
+    hsv[0]  = fmod((60 * ((rgb_point_double[0]  - rgb_point_double[1] ) / diff) + 240), 360.0);
   }
 }
-/*< RGB to HSV point END >*/
+/*< RGB to HSV of one pixel END >*/
 
-/*< RGB to YIQ point START >*/
-// Reference https://www.eembc.org/techlit/datasheets/yiq_consumer.pdf
-void pointRgbToYiq(int r, int g, int b)
+
+/*< RGB to YIQ of click START >*/
+void clickRgbToYiq()
+{
+  pixelRgbToYiq(bgr_point[2], bgr_point[1], bgr_point[0], yiq_point);
+}
+/*< RGB to YIQ of click END >*/
+
+/*< RGB to YIQ of one pixel START >*/
+void pixelRgbToYiq(int r, int g, int b, float *yiq)
 {
   double Y, I, Q;
-  yiq_point[0] = (0.299*r + 0.587*g + 0.114*b)/255;
-  yiq_point[1] = (0.596*r - 0.275*g - 0.321*b)/255;
-  yiq_point[2] = (0.212*r - 0.523*g + 0.311*b)/255;
+  yiq[0] = (0.299*r + 0.587*g + 0.114*b)/255;
+  yiq[1] = (0.596*r - 0.275*g - 0.321*b)/255;
+  yiq[2] = (0.212*r - 0.523*g + 0.311*b)/255;
 }
-/*< RGB to YIQ point END >*/
+/*< RGB to YIQ of one pixel END >*/
 
 
 /*< RGB to HSV image START >*/
@@ -512,9 +533,9 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
             cout << "  Mouse X, Y: " << x << ", " << y << endl;
             printPoint('r');
-            pointRgbToHsv(bgr_point[2], bgr_point[1], bgr_point[0]);
+            clickRgbToHsv();
             printPoint('h');
-            pointRgbToYiq(bgr_point[2], bgr_point[1], bgr_point[0]);
+            clickRgbToYiq();
             printPoint('y');
 
 	if(filtrar){
