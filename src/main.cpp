@@ -38,6 +38,9 @@ float yiq_point[3] = {-1, -1, -1};
 int minFilter[3] = {257, 257, 257};
 int maxFilter[3] = {-1, -1, -1};
 
+int epsilon = 10;
+
+
 
 
 /*< Main START >*/
@@ -45,8 +48,8 @@ int main(int argc, char *argv[])
 {
   namedWindow("Original");
   setMouseCallback("Original", mouseCoordinatesExampleCallback);
-  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  VideoCapture camera("Videotest");     //Comment for real camera usage
+  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  //VideoCapture camera("Videotest");     //Comment for real camera usage
   bool isCameraAvailable = camera.isOpened();
                                         // Limpia la terminal
   cout << "\033[2J\033[1;1H";
@@ -301,11 +304,18 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar co
           Scalar(255,255,255), 2, 8, 0  );
   }
 
+                                        // Dibuja dos lineas que marca el umbral
+  if(countFilter >= 2)
+  {
+    line(histImage, Point(offset + (minFilter[channel] - epsilon)*bin_w, 0), Point(offset + (minFilter[channel] - epsilon)*bin_w, hist_h), Scalar( 0, 255, 255) , 2, CV_FILLED);
+    line(histImage, Point(offset + (maxFilter[channel] + epsilon)*bin_w, 0), Point(offset + (maxFilter[channel] + epsilon)*bin_w, hist_h), Scalar( 0, 255, 255) , 2, CV_FILLED);
+  }
                                         // Dibuja una linea en el valor del pixel-clic
   if(point_val != -1)
   {
     line(histImage, Point(offset + point_val*bin_w, 0), Point(offset + point_val*bin_w, hist_h), Scalar( 255, 255, 255) , 2, CV_FILLED);
   }
+                                        
   histo = histImage;
 }
 /*< Histograma END >*/
@@ -324,7 +334,6 @@ void blackWhite()
 /*< Filter Image START >*/
 void filterImage(){
 	if(maxFilter[0] !=-1 && countFilter >= 2){
-    int epsilon = 10;
 		int lowRed = minFilter[2];
 		int hiRed = maxFilter[2];
 		int lowGr =  minFilter[1];
@@ -423,7 +432,13 @@ void getFilterRange(){
         maxFilter[1] = bgr_point[1];
         maxFilter[2] = bgr_point[2];
 			}
-      /*if(bgr_point[1] < minFilter[1]){
+      /*if(bgr_point[0] < minFilter[0]){
+        minFilter[0] = bgr_point[0];
+      }
+      if(bgr_point[0] > maxFilter[0]){
+        maxFilter[0] = bgr_point[0];
+      }
+      if(bgr_point[1] < minFilter[1]){
         minFilter[1] = bgr_point[1];
       }
       if(bgr_point[1] > maxFilter[1]){
