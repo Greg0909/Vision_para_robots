@@ -41,7 +41,7 @@ float yiq_point[3] = {-1, -1, -1};
 int minFilter[3] = {257, 257, 257};
 int maxFilter[3] = {-1, -1, -1};
 
-int epsilon = 2;
+int epsilon = 10;
 
 
 
@@ -167,9 +167,9 @@ void plotHistograms()
       break;
 
     case 'h':
-      histogramGeneral(currentImageHSV, histo_1, 0, Scalar( 255  , 0  , 0  ), hsv_point[0]);
-      histogramGeneral(currentImageHSV, histo_2, 1, Scalar( 0  , 255  , 0  ), hsv_point[1]);
-      histogramGeneral(currentImageHSV, histo_3, 2, Scalar( 0  , 0  , 255  ), hsv_point[2]);
+      histogramGeneral(currentImageHSV, histo_1, 0, Scalar( 255  , 255  , 127  ), hsv_point[0]);
+      histogramGeneral(currentImageHSV, histo_2, 1, Scalar( 127  , 255  , 127  ), hsv_point[1]);
+      histogramGeneral(currentImageHSV, histo_3, 2, Scalar( 127  , 127  , 255  ), hsv_point[2]);
 
       imshow("Histo_H", histo_1);
       imshow("Histo_S", histo_2);
@@ -184,9 +184,9 @@ void plotHistograms()
       break;
 
     case 'y':
-      histogramGeneral(currentImageYIQ, histo_1, 0, Scalar( 255  , 0  , 0  ), yiq_point[0]);
-      histogramGeneral(currentImageYIQ, histo_2, 1, Scalar( 0  , 255  , 0  ), yiq_point[1]);
-      histogramGeneral(currentImageYIQ, histo_3, 2, Scalar( 0  , 0  , 255  ), yiq_point[2]);
+      histogramGeneral(currentImageYIQ, histo_1, 0, Scalar( 255  , 127  , 127  ), yiq_point[0]);
+      histogramGeneral(currentImageYIQ, histo_2, 1, Scalar( 127  , 255  , 127  ), yiq_point[1]);
+      histogramGeneral(currentImageYIQ, histo_3, 2, Scalar( 127  , 127  , 255  ), yiq_point[2]);
 
       imshow("Histo_Y", histo_1);
       imshow("Histo_I", histo_2);
@@ -308,6 +308,14 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar co
     if(modelo == 'h')
     {
                                         // Convertir el color "gradiente" de HSV a BGR
+      color[channel] = i-1;
+      color[0] = color[0]/255 * 179;
+      Mat temphsv( 1, 1, CV_8UC3, color );
+      Mat tempbgr_mat;
+      cvtColor(temphsv, tempbgr_mat, CV_HSV2BGR);
+      gradiente[0] = tempbgr_mat.at<Vec3b>(0, 0)[0];
+      gradiente[1] = tempbgr_mat.at<Vec3b>(0, 0)[1];
+      gradiente[2] = tempbgr_mat.at<Vec3b>(0, 0)[2];
     }
     if(modelo == 'y')
     {
