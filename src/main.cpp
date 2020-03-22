@@ -4,6 +4,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 //#include <algorithm>
+// http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
 using namespace cv;
@@ -12,7 +13,6 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channels, Scalar c
 void flipImageBasic(const Mat &sourceImage, Mat &destinationImage);
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param);
 void plotHistograms();
-void imageRgbToYiq();
 void blackWhite();
 void filterImage();
 void getFilterRange();
@@ -22,6 +22,7 @@ void clickRgbToYiq();
 void pixelRgbToYiq(int r, int g, int b, float *yiq);
 void printPoint(char colormodel);
 void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage);
+void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage);
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -68,7 +69,7 @@ int main(int argc, char *argv[])
       {
         camera.read(currentImageRGB);
         imageRgbToHsv(currentImageRGB, currentImageHSV);
-        imageRgbToYiq();
+        imageRgbToYiq(currentImageRGB, currentImageYIQ);
       }
       plotHistograms();
       blackWhite();
@@ -95,6 +96,8 @@ int main(int argc, char *argv[])
         break;
       case 'h':
         modelo = 'h';
+        imshow("HSV", currentImageHSV);
+
         break;
       case 'y':
         modelo = 'y';
@@ -426,17 +429,16 @@ void pixelRgbToYiq(int r, int g, int b, float *yiq)
 /*< RGB to HSV image START >*/
 void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage)
 {
-
+  cvtColor(sourceImage, destinationImage, CV_BGR2HSV);
 }
 /*< RGB to HSV image END >*/
 
 
 /*< RGB to YIQ image START >*/
-void imageRgbToYiq()
+void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage)
 {
-                                        // Toma los valores del arreglo "bgr_point"
-                                        // para convertirlos a valores hsv y guardarlos
-                                        // en el arreglo "hsv_point"
+
+
 }
 /*< RGB to YIQ image END >*/
 
