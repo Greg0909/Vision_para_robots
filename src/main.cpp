@@ -375,7 +375,6 @@ void filterImage(){
 		Mat filter;
 		inRange((modelo =='r')? currentImageRGB : (modelo == 'h' ? currentImageHSV : currentImageYIQ), Scalar(lowBl-epsilon,lowGr-epsilon,lowRed-epsilon),Scalar (hiBl+epsilon,hiGr+epsilon,hiRed+epsilon),mask);
 		bitwise_and(currentImageRGB,currentImageRGB, filter,mask= mask);
-		imshow("Mask",mask);
 		imshow("Filter",filter);
 
 	}
@@ -497,7 +496,7 @@ void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage)
 void getFilterRange(){
 	switch(modelo){
 		case 'r':
-			if(bgr_point[0] < minFilter[0]){
+			/*if(bgr_point[0] < minFilter[0]){
 				minFilter[0] = bgr_point[0];
         minFilter[1] = bgr_point[1];
         minFilter[2] = bgr_point[2];
@@ -506,28 +505,28 @@ void getFilterRange(){
 				maxFilter[0] = bgr_point[0];
         maxFilter[1] = bgr_point[1];
         maxFilter[2] = bgr_point[2];
-			}
-      /*if(bgr_point[0] < minFilter[0]){
-        minFilter[0] = bgr_point[0];
-      }
-      if(bgr_point[0] > maxFilter[0]){
-        maxFilter[0] = bgr_point[0];
-      }
-      if(bgr_point[1] < minFilter[1]){
-        minFilter[1] = bgr_point[1];
-      }
-      if(bgr_point[1] > maxFilter[1]){
-        maxFilter[1] = bgr_point[1];
-      }
-      if(bgr_point[2] < minFilter[2]){
-        minFilter[2] = bgr_point[2];
-      }
-      if(bgr_point[2] > maxFilter[2]){
-        maxFilter[2] = bgr_point[2];
-      }*/
+			}*/
+		      if(bgr_point[0] < minFilter[0]){
+			minFilter[0] = bgr_point[0];
+		      }
+		      if(bgr_point[0] > maxFilter[0]){
+			maxFilter[0] = bgr_point[0];
+		      }
+		      if(bgr_point[1] < minFilter[1]){
+			minFilter[1] = bgr_point[1];
+		      }
+		      if(bgr_point[1] > maxFilter[1]){
+			maxFilter[1] = bgr_point[1];
+		      }
+		      if(bgr_point[2] < minFilter[2]){
+			minFilter[2] = bgr_point[2];
+		      }
+		      if(bgr_point[2] > maxFilter[2]){
+			maxFilter[2] = bgr_point[2];
+		      }
 		break;
 		case 'h':
-			if(hsv_point[0] < minFilter[0]){
+			/*if(hsv_point[0] < minFilter[0]){
 				minFilter[2] = hsv_point[2];
 				minFilter[1] = hsv_point[1];
 				minFilter[0] = hsv_point[0];
@@ -536,10 +535,29 @@ void getFilterRange(){
 				maxFilter[2] = hsv_point[2];
 				maxFilter[1] = hsv_point[1];
 				maxFilter[0] = hsv_point[0];
-			}
+			}*/
+
+		      if(hsv_point[0] < minFilter[0]){
+			minFilter[0] = hsv_point[0];
+		      }
+		      if(hsv_point[0] > maxFilter[0]){
+			maxFilter[0] = hsv_point[0];
+		      }
+		      if(hsv_point[1] < minFilter[1]){
+			minFilter[1] = hsv_point[1];
+		      }
+		      if(hsv_point[1] > maxFilter[1]){
+			maxFilter[1] = hsv_point[1];
+		      }
+		      if(hsv_point[2] < minFilter[2]){
+			minFilter[2] = hsv_point[2];
+		      }
+		      if(hsv_point[2] > maxFilter[2]){
+			maxFilter[2] = hsv_point[2];
+		      }
 		break;
 		case 'y':
-			if(yiq_point[0] < minFilter[0]){
+			/*if(yiq_point[0] < minFilter[0]){
 				minFilter[2] = yiq_point[2];
 				minFilter[1] = yiq_point[1];
 				minFilter[0] = yiq_point[0];
@@ -548,15 +566,33 @@ void getFilterRange(){
 				maxFilter[2] = yiq_point[2];
 				maxFilter[1] = yiq_point[1];
 				maxFilter[0] = yiq_point[0];
-			}
+			}*/
+		      if(yiq_point[0] < minFilter[0]){
+			minFilter[0] = yiq_point[0];
+		      }
+		      if(yiq_point[0] > maxFilter[0]){
+			maxFilter[0] = yiq_point[0];
+		      }
+		      if(yiq_point[1] < minFilter[1]){
+			minFilter[1] = yiq_point[1];
+		      }
+		      if(yiq_point[1] > maxFilter[1]){
+			maxFilter[1] = yiq_point[1];
+		      }
+		      if(yiq_point[2] < minFilter[2]){
+			minFilter[2] = yiq_point[2];
+		      }
+		      if(yiq_point[2] > maxFilter[2]){
+			maxFilter[2] = yiq_point[2];
+		      }
 		break;
 	}
 		countFilter+=1;
 		cout<< countFilter <<endl;
-		if(countFilter == 8){
+		if(countFilter >2){
 			//filtrar=false;
-			cout<< "EL umbrall minimo es " << minFilter[0] <<endl;
-			cout<< "EL umbrall maximo es " << maxFilter[0] <<endl;
+			cout<< "EL umbrall minimo es " << minFilter[0] << " " << minFilter[1] << " " <<minFilter[2] <<endl;
+			cout<< "EL umbrall maximo es " << maxFilter[0] << " " << maxFilter[1] << " " <<maxFilter[2] <<endl;
 		}
 }
 /* max and min range for filters END*/
