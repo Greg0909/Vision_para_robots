@@ -3,7 +3,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-//#include <algorithm>
 // http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
