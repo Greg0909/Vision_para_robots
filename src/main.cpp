@@ -129,6 +129,11 @@ int main(int argc, char *argv[])
       case ' ':
         congelado = !congelado;
         break;
+
+      case 'e':
+        cout << "Indica el nuevo epsilon" << endl;
+        cin >> epsilon;
+        break;
     }
                                         // Si 'x' o ESC es presionada el programa termina
     if(key == 'x' || key == 27 )        // 27 = ESC
@@ -338,13 +343,15 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar co
                                         // Dibuja dos lineas que marca el umbral
   if(countFilter >= 2)
   {
-    line(histImage, Point(offset + (minFilter[channel] - epsilon)*bin_w, 0), Point(offset + (minFilter[channel] - epsilon)*bin_w, hist_h), Scalar( 0, 255, 255) , 2, CV_FILLED);
-    line(histImage, Point(offset + (maxFilter[channel] + epsilon)*bin_w, 0), Point(offset + (maxFilter[channel] + epsilon)*bin_w, hist_h), Scalar( 0, 255, 255) , 2, CV_FILLED);
+    int low_boundary = minFilter[channel] - epsilon < 0 ? 0 : minFilter[channel] - epsilon;
+    int high_boundary = maxFilter[channel] + epsilon > 255 ? 255 : maxFilter[channel] + epsilon;
+    line(histImage, Point(offset + low_boundary*bin_w, 0), Point(offset + low_boundary*bin_w, hist_h - gradient_size), Scalar( 0, 255, 255) , 2, CV_FILLED);
+    line(histImage, Point(offset + high_boundary*bin_w, 0), Point(offset + high_boundary*bin_w, hist_h - gradient_size), Scalar( 0, 255, 255) , 2, CV_FILLED);
   }
                                         // Dibuja una linea en el valor del pixel-clic
   if(point_val != -1)
   {
-    line(histImage, Point(offset + point_val*bin_w, 0), Point(offset + point_val*bin_w, hist_h), Scalar( 255, 255, 255) , 2, CV_FILLED);
+    line(histImage, Point(offset + point_val*bin_w, 0), Point(offset + point_val*bin_w, hist_h - gradient_size), Scalar( 255, 0, 255) , 2, CV_FILLED);
   }
 
   histo = histImage;
@@ -365,15 +372,16 @@ void blackWhite()
 /*< Filter Image START >*/
 void filterImage(){
 	if(maxFilter[0] !=-1 && countFilter >= 2){
-		int lowRed = minFilter[2];
-		int hiRed = maxFilter[2];
-		int lowGr =  minFilter[1];
-		int hiGr= maxFilter[1];
-		int lowBl=  minFilter[0];
-		int hiBl= maxFilter[0];
+		int lowRed = minFilter[2] - epsilon;
+		int hiRed = maxFilter[2]  + epsilon;
+		int lowGr =  minFilter[1] - epsilon;
+		int hiGr= maxFilter[1]    + epsilon;
+		int lowBl=  minFilter[0]  - epsilon;
+		int hiBl= maxFilter[0]    + epsilon;
 		Mat mask;
 		Mat filter;
-		inRange((modelo =='r')? currentImageRGB : (modelo == 'h' ? currentImageHSV : currentImageYIQ), Scalar(lowBl-epsilon,lowGr-epsilon,lowRed-epsilon),Scalar (hiBl+epsilon,hiGr+epsilon,hiRed+epsilon),mask);
+
+		inRange( displayedImage, Scalar(lowBl, lowGr, lowRed),Scalar (hiBl, hiGr, hiRed),mask);
 		bitwise_and(currentImageRGB,currentImageRGB, filter,mask= mask);
 		imshow("Filter",filter);
 
@@ -467,6 +475,11 @@ void pixelYiqToRgb(float y, float i, float q, int *bgr)
 void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage)
 {
   cvtColor(sourceImage, destinationImage, CV_BGR2HSV);
+  Mat channels[3];
+  split(destinationImage, channels);
+  channels[0] = channels[0]/180*255;
+
+  merge(channels, 3, destinationImage);
 }
 /*< RGB to HSV image END >*/
 
@@ -506,23 +519,23 @@ void getFilterRange(){
         maxFilter[1] = bgr_point[1];
         maxFilter[2] = bgr_point[2];
 			}*/
-		      if(bgr_point[0] < minFilter[0]){
-			minFilter[0] = bgr_point[0];
+		      if(bgr_point[0] < minFilter[0] - epsilon){
+			       minFilter[0] = bgr_point[0];
 		      }
-		      if(bgr_point[0] > maxFilter[0]){
-			maxFilter[0] = bgr_point[0];
+		      if(bgr_point[0] > maxFilter[0] + epsilon){
+			       maxFilter[0] = bgr_point[0];
 		      }
-		      if(bgr_point[1] < minFilter[1]){
-			minFilter[1] = bgr_point[1];
+		      if(bgr_point[1] < minFilter[1] - epsilon){
+			       minFilter[1] = bgr_point[1];
 		      }
-		      if(bgr_point[1] > maxFilter[1]){
-			maxFilter[1] = bgr_point[1];
+		      if(bgr_point[1] > maxFilter[1] + epsilon){
+			       maxFilter[1] = bgr_point[1];
 		      }
-		      if(bgr_point[2] < minFilter[2]){
-			minFilter[2] = bgr_point[2];
+		      if(bgr_point[2] < minFilter[2] - epsilon){
+			       minFilter[2] = bgr_point[2];
 		      }
-		      if(bgr_point[2] > maxFilter[2]){
-			maxFilter[2] = bgr_point[2];
+		      if(bgr_point[2] > maxFilter[2] + epsilon){
+			       maxFilter[2] = bgr_point[2];
 		      }
 		break;
 		case 'h':
@@ -537,23 +550,23 @@ void getFilterRange(){
 				maxFilter[0] = hsv_point[0];
 			}*/
 
-		      if(hsv_point[0] < minFilter[0]){
-			minFilter[0] = hsv_point[0];
+		      if(hsv_point[0] < minFilter[0] - epsilon){
+			       minFilter[0] = hsv_point[0];
 		      }
-		      if(hsv_point[0] > maxFilter[0]){
-			maxFilter[0] = hsv_point[0];
+		      if(hsv_point[0] > maxFilter[0] + epsilon){
+			       maxFilter[0] = hsv_point[0];
 		      }
-		      if(hsv_point[1] < minFilter[1]){
-			minFilter[1] = hsv_point[1];
+		      if(hsv_point[1] < minFilter[1] - epsilon){
+			       minFilter[1] = hsv_point[1];
 		      }
-		      if(hsv_point[1] > maxFilter[1]){
-			maxFilter[1] = hsv_point[1];
+		      if(hsv_point[1] > maxFilter[1] + epsilon){
+			       maxFilter[1] = hsv_point[1];
 		      }
-		      if(hsv_point[2] < minFilter[2]){
-			minFilter[2] = hsv_point[2];
+		      if(hsv_point[2] < minFilter[2] - epsilon){
+			       minFilter[2] = hsv_point[2];
 		      }
-		      if(hsv_point[2] > maxFilter[2]){
-			maxFilter[2] = hsv_point[2];
+		      if(hsv_point[2] > maxFilter[2] + epsilon){
+			       maxFilter[2] = hsv_point[2];
 		      }
 		break;
 		case 'y':
@@ -567,23 +580,23 @@ void getFilterRange(){
 				maxFilter[1] = yiq_point[1];
 				maxFilter[0] = yiq_point[0];
 			}*/
-		      if(yiq_point[0] < minFilter[0]){
-			minFilter[0] = yiq_point[0];
+		      if(yiq_point[0] < minFilter[0] - epsilon){
+			       minFilter[0] = yiq_point[0];
 		      }
-		      if(yiq_point[0] > maxFilter[0]){
-			maxFilter[0] = yiq_point[0];
+		      if(yiq_point[0] > maxFilter[0] + epsilon){
+			       maxFilter[0] = yiq_point[0];
 		      }
-		      if(yiq_point[1] < minFilter[1]){
-			minFilter[1] = yiq_point[1];
+		      if(yiq_point[1] < minFilter[1] - epsilon){
+			       minFilter[1] = yiq_point[1];
 		      }
-		      if(yiq_point[1] > maxFilter[1]){
-			maxFilter[1] = yiq_point[1];
+		      if(yiq_point[1] > maxFilter[1] + epsilon){
+			       maxFilter[1] = yiq_point[1];
 		      }
-		      if(yiq_point[2] < minFilter[2]){
-			minFilter[2] = yiq_point[2];
+		      if(yiq_point[2] < minFilter[2] - epsilon){
+			       minFilter[2] = yiq_point[2];
 		      }
-		      if(yiq_point[2] > maxFilter[2]){
-			maxFilter[2] = yiq_point[2];
+		      if(yiq_point[2] > maxFilter[2] + epsilon){
+			       maxFilter[2] = yiq_point[2];
 		      }
 		break;
 	}
