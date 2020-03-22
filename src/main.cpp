@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
 {
   namedWindow("Original");
   setMouseCallback("Original", mouseCoordinatesExampleCallback);
-  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  //VideoCapture camera("Videotest");     //Comment for real camera usage
+  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  VideoCapture camera("Videotest");     //Comment for real camera usage
   bool isCameraAvailable = camera.isOpened();
                                         // Limpia la terminal
   cout << "\033[2J\033[1;1H";
@@ -317,7 +317,7 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar co
   {
     line(histImage, Point(offset + point_val*bin_w, 0), Point(offset + point_val*bin_w, hist_h), Scalar( 255, 255, 255) , 2, CV_FILLED);
   }
-                                        
+
   histo = histImage;
 }
 /*< Histograma END >*/
@@ -370,10 +370,10 @@ void clickRgbToHsv()
 // REsult verified with https://www.rapidtables.com/convert/color/rgb-to-hsv.html
 void pixelRgbToHsv(int r, int g, int b, float *hsv)
 {
-  double rgb_point_double[3] = {22, 22, 22};
+  double rgb_point_double[3] = {-1, -1, -1};
   double minMaxColors[2] ={0,0};
   double diff;
-  rgb_point_double[0] = r/ 255.0;
+  rgb_point_double[0] = r/255.0;
   rgb_point_double[1] = g/255.0;
   rgb_point_double[2] = b/255.0;
 
@@ -384,12 +384,12 @@ void pixelRgbToHsv(int r, int g, int b, float *hsv)
 
   //minMax(rgb_point_double, minMaxColors);
   diff = minMaxColors[1]-minMaxColors[0];
-  hsv[2]  = minMaxColors[1] * 100;
+  hsv[2]  = minMaxColors[1] * 255;
   if (minMaxColors[1] == 0){
     hsv[1] = 0;
   }
   else{
-    hsv[1] = (diff / minMaxColors[1]) * 100;
+    hsv[1] = (diff / minMaxColors[1]) * 255;
   }
   if(minMaxColors[0] == minMaxColors[1]){
     hsv[0] = 0;
@@ -400,6 +400,7 @@ void pixelRgbToHsv(int r, int g, int b, float *hsv)
   }else if(minMaxColors[1]== rgb_point_double[2] ){
     hsv[0]  = fmod((60 * ((rgb_point_double[0]  - rgb_point_double[1] ) / diff) + 240), 360.0);
   }
+  hsv[0] = hsv[0] *255/360.0;
 }
 /*< RGB to HSV of one pixel END >*/
 
@@ -415,9 +416,9 @@ void clickRgbToYiq()
 void pixelRgbToYiq(int r, int g, int b, float *yiq)
 {
   double Y, I, Q;
-  yiq[0] = (0.299*r + 0.587*g + 0.114*b)/255;
-  yiq[1] = (0.596*r - 0.275*g - 0.321*b)/255;
-  yiq[2] = (0.212*r - 0.523*g + 0.311*b)/255;
+  yiq[0] = (0.299*r + 0.587*g + 0.114*b);
+  yiq[1] = ((0.596*r - 0.275*g - 0.321*b)/255 +0.596) *255;
+  yiq[2] = ((0.212*r - 0.523*g + 0.311*b)/255 +.523) *255;
 }
 /*< RGB to YIQ of one pixel END >*/
 
@@ -531,6 +532,7 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
             bgr_point[1] = int(currentImageRGB.at<Vec3b>(y, x)[1]);
             bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
+
             cout << "  Mouse X, Y: " << x << ", " << y << endl;
             printPoint('r');
             clickRgbToHsv();
