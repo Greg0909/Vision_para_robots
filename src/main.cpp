@@ -19,6 +19,7 @@ void clickRgbToHsv();
 void pixelRgbToHsv(int r, int g, int b, float *hsv);
 void clickRgbToYiq();
 void pixelRgbToYiq(int r, int g, int b, float *yiq);
+void pixelYiqToRgb(float y, float i, float q, int *bgr);
 void printPoint(char colormodel);
 void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage);
 void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage);
@@ -40,7 +41,7 @@ float yiq_point[3] = {-1, -1, -1};
 int minFilter[3] = {257, 257, 257};
 int maxFilter[3] = {-1, -1, -1};
 
-int epsilon = 10;
+int epsilon = 2;
 
 
 
@@ -50,8 +51,8 @@ int main(int argc, char *argv[])
 {
   namedWindow("Image");
   setMouseCallback("Image", mouseCoordinatesExampleCallback);
-  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  VideoCapture camera("Videotest");     //Comment for real camera usage
+  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  //VideoCapture camera("Videotest");     //Comment for real camera usage
   bool isCameraAvailable = camera.isOpened();
                                         // Limpia la terminal
   cout << "\033[2J\033[1;1H";
@@ -166,9 +167,9 @@ void plotHistograms()
       break;
 
     case 'h':
-      histogramGeneral(currentImageHSV, histo_1, 0, Scalar( 0  , 255  , 255  ), hsv_point[0]);
-      histogramGeneral(currentImageHSV, histo_2, 1, Scalar( 0  , 255  , 255  ), hsv_point[1]);
-      histogramGeneral(currentImageHSV, histo_3, 2, Scalar( 0  , 255  , 255  ), hsv_point[2]);
+      histogramGeneral(currentImageHSV, histo_1, 0, Scalar( 255  , 0  , 0  ), hsv_point[0]);
+      histogramGeneral(currentImageHSV, histo_2, 1, Scalar( 0  , 255  , 0  ), hsv_point[1]);
+      histogramGeneral(currentImageHSV, histo_3, 2, Scalar( 0  , 0  , 255  ), hsv_point[2]);
 
       imshow("Histo_H", histo_1);
       imshow("Histo_S", histo_2);
@@ -183,9 +184,9 @@ void plotHistograms()
       break;
 
     case 'y':
-      histogramGeneral(currentImageYIQ, histo_1, 0, Scalar( 255  , 120  , 120  ), yiq_point[0]);
-      histogramGeneral(currentImageYIQ, histo_2, 1, Scalar( 120  , 255  , 120  ), yiq_point[1]);
-      histogramGeneral(currentImageYIQ, histo_3, 2, Scalar( 120  , 120  , 255  ), yiq_point[2]);
+      histogramGeneral(currentImageYIQ, histo_1, 0, Scalar( 255  , 0  , 0  ), yiq_point[0]);
+      histogramGeneral(currentImageYIQ, histo_2, 1, Scalar( 0  , 255  , 0  ), yiq_point[1]);
+      histogramGeneral(currentImageYIQ, histo_3, 2, Scalar( 0  , 0  , 255  ), yiq_point[2]);
 
       imshow("Histo_Y", histo_1);
       imshow("Histo_I", histo_2);
@@ -298,8 +299,12 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar co
   for( int i = 1; i < histSize; i++ )
   {
     Scalar gradiente = color;
-    gradiente[channel] = i-1;
+    
 
+    if(modelo == 'r')
+    {
+      gradiente[channel] = i-1;
+    }
     if(modelo == 'h')
     {
                                         // Convertir el color "gradiente" de HSV a BGR
@@ -307,6 +312,12 @@ void histogramGeneral(const Mat &sourceImage, Mat &histo, int channel, Scalar co
     if(modelo == 'y')
     {
                                         // Convertir el color "gradiente" de YIQ a BGR
+      int tempbgr[3];
+      color[channel] = i-1;
+      pixelYiqToRgb(color[0], color[1], color[2], tempbgr);
+      gradiente[0] = tempbgr[0];
+      gradiente[1] = tempbgr[1];
+      gradiente[2] = tempbgr[2];
     }
 
     line(histImage, Point(offset + bin_w*(i-1), hist_h), Point(offset + bin_w*(i-1), hist_h - gradient_size), gradiente , 3, CV_FILLED);
@@ -425,10 +436,22 @@ void clickRgbToYiq()
 /*< RGB to YIQ of one pixel START >*/
 void pixelRgbToYiq(int r, int g, int b, float *yiq)
 {
-  double Y, I, Q;
   yiq[0] = (0.299*r + 0.587*g + 0.114*b);
-  yiq[1] = ((0.596*r - 0.275*g - 0.321*b)/255 +0.596) *255;
-  yiq[2] = ((0.212*r - 0.523*g + 0.311*b)/255 +.523) *255;
+  yiq[1] = ((0.596*r - 0.275*g - 0.321*b)/255 +0.596)/1.192 *255;
+  yiq[2] = ((0.212*r - 0.523*g + 0.311*b)/255 +.523)/1.046 *255;
+}
+/*< RGB to YIQ of one pixel END >*/
+
+
+/*< RGB to YIQ of one pixel START >*/
+void pixelYiqToRgb(float y, float i, float q, int *bgr)
+{
+  y = y/255;
+  i = (i/255)*1.192 -0.596;
+  q = (q/255)*1.046 -0.523;
+  bgr[2] = ( 1*y + 0.956*i + 0.621*q) * 255;
+  bgr[1] = ((1*y - 0.272*i - 0.647*q)) *255;
+  bgr[0] = ((1*y - 1.106*i + 1.703*q)) *255;
 }
 /*< RGB to YIQ of one pixel END >*/
 
@@ -444,8 +467,21 @@ void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage)
 /*< RGB to YIQ image START >*/
 void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage)
 {
+  if (destinationImage.empty())
+    destinationImage = Mat(sourceImage.rows, sourceImage.cols, sourceImage.type());
 
-
+  for (int y = 0; y < sourceImage.rows; ++y)
+    for (int x = 0; x < sourceImage.cols; ++x)
+    {
+        float temp[3];
+        pixelRgbToYiq(sourceImage.at<Vec3b>(y, x)[2],
+                      sourceImage.at<Vec3b>(y, x)[1],
+                      sourceImage.at<Vec3b>(y, x)[0],
+                      temp);
+        destinationImage.at<Vec3b>(y, x)[0] = temp[0];
+        destinationImage.at<Vec3b>(y, x)[1] = temp[1];
+        destinationImage.at<Vec3b>(y, x)[2] = temp[2];
+    }
 }
 /*< RGB to YIQ image END >*/
 
