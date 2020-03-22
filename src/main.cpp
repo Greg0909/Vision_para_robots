@@ -29,7 +29,7 @@ int counter_hist[3] = {0,0,0};
 int countFilter=0;
                                         // La escala de los 3 histogramas
 int h_scale[3] = {0,0,0};
-Mat currentImageRGB, currentImageHSV, currentImageYIQ;
+Mat currentImageRGB, currentImageHSV, currentImageYIQ, displayedImage;
 bool congelado = false;
                                         // r (RGB), h (HSV), y (YIQ)
 char modelo =  'r';
@@ -49,15 +49,15 @@ int epsilon = 10;
 /*< Main START >*/
 int main(int argc, char *argv[])
 {
-  namedWindow("Original");
-  setMouseCallback("Original", mouseCoordinatesExampleCallback);
+  namedWindow("Image");
+  setMouseCallback("Image", mouseCoordinatesExampleCallback);
   //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
   VideoCapture camera("Videotest");     //Comment for real camera usage
   bool isCameraAvailable = camera.isOpened();
                                         // Limpia la terminal
   cout << "\033[2J\033[1;1H";
   cout << "Basic Show Image \t|\tUse 'x' or 'Esc' to terminate execution\n";
-
+  bool defaultColor = true;
   while (true)
   {
                                         // Obtiene un nuevo Frame de la camara si "congelado" es falso
@@ -86,20 +86,28 @@ int main(int argc, char *argv[])
       break;
     }
 
-    imshow("Original", currentImageRGB);
+    if(defaultColor){
+      displayedImage =currentImageRGB;
+    }
+    imshow("Image", displayedImage);
+
 
     char key = waitKey(1);
     switch(key)
     {
       case 'r':
+        defaultColor = false;
         modelo = 'r';
+        displayedImage =currentImageRGB;
         break;
       case 'h':
+        defaultColor = false;
         modelo = 'h';
-        imshow("HSV", currentImageHSV);
-
+        displayedImage =currentImageHSV;
         break;
       case 'y':
+        defaultColor = false;
+        displayedImage =currentImageYIQ;
         modelo = 'y';
         break;
       case 'f':
