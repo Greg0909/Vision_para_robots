@@ -42,6 +42,7 @@ int minFilter[3] = {267, 267, 267};
 int maxFilter[3] = {-11, -11, -11};
 
 int epsilon = 10;
+int umbral_bw = 100;
 
 
 
@@ -110,6 +111,10 @@ int main(int argc, char *argv[])
         displayedImage =currentImageYIQ;
         modelo = 'y';
         break;
+      case 'b':
+        defaultColor = false;
+        modelo = 'b';
+        break;
       case 'f':
       if(!filtrar)
       {
@@ -133,6 +138,12 @@ int main(int argc, char *argv[])
       case 'e':
         cout << "Indica el nuevo epsilon" << endl;
         cin >> epsilon;
+        break;
+      case 'u':
+        cout << "Indica el nuevo umbral para blanco y negro, debe de estar en el rango [0 - 255]" << endl;
+        cin >> umbral_bw;
+        umbral_bw = umbral_bw > 255 ? 255 : umbral_bw;
+        umbral_bw = umbral_bw < 0 ? 0 : umbral_bw;
         break;
     }
                                         // Si 'x' o ESC es presionada el programa termina
@@ -203,6 +214,18 @@ void plotHistograms()
       destroyWindow("Histo_H");
       destroyWindow("Histo_S");
       destroyWindow("Histo_V");
+      break;
+    case 'b':
+      destroyWindow("Histo_B");
+      destroyWindow("Histo_G");
+      destroyWindow("Histo_R");
+      destroyWindow("Histo_H");
+      destroyWindow("Histo_S");
+      destroyWindow("Histo_V");
+      destroyWindow("Histo_Y");
+      destroyWindow("Histo_I");
+      destroyWindow("Histo_Q");
+      destroyWindow("Filter");
       break;
   }
 
@@ -364,6 +387,22 @@ void blackWhite()
 {
                                         // Toma la currentImageRGB y la despliega en escala
                                         // de grises y binarizada.
+  if(modelo == 'b')
+  {
+    Mat channels[3];
+    Mat black_white( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
+    Mat mask;
+
+    split(currentImageRGB, channels);
+    black_white = channels[0]*0.1 + channels[1]*0.3 + channels[2]*0.6;
+    inRange( black_white, Scalar(umbral_bw),Scalar (256),mask);
+    displayedImage = black_white;
+    imshow("Binarizada", mask);
+  }  
+  else
+  {
+    destroyWindow("Binarizada");
+  }
 }
 /*< Black and white and binary END >*/
 
@@ -458,7 +497,7 @@ void pixelRgbToYiq(int r, int g, int b, float *yiq)
 /*< RGB to YIQ of one pixel END >*/
 
 
-/*< RGB to YIQ of one pixel START >*/
+/*< YIQ to RGB of one pixel START >*/
 void pixelYiqToRgb(float y, float i, float q, int *bgr)
 {
   y = y/255;
@@ -468,7 +507,7 @@ void pixelYiqToRgb(float y, float i, float q, int *bgr)
   bgr[1] = ((1*y - 0.272*i - 0.647*q)) *255;
   bgr[0] = ((1*y - 1.106*i + 1.703*q)) *255;
 }
-/*< RGB to YIQ of one pixel END >*/
+/*< YIQ to RGB of one pixel END >*/
 
 
 /*< RGB to HSV image START >*/
