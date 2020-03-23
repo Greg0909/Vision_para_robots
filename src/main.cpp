@@ -38,8 +38,8 @@ bool filtrar = false;
 int bgr_point[3] = {-1, -1, -1};
 float hsv_point[3] = {-1, -1, -1};
 float yiq_point[3] = {-1, -1, -1};
-int minFilter[3] = {257, 257, 257};
-int maxFilter[3] = {-1, -1, -1};
+int minFilter[3] = {267, 267, 267};
+int maxFilter[3] = {-11, -11, -11};
 
 int epsilon = 10;
 
@@ -116,12 +116,12 @@ int main(int argc, char *argv[])
         cout << "reinicar filtro" << endl;
       	filtrar = true;
       	countFilter =0;
-      	minFilter[2] = 257;
-      	minFilter[1] = 257;
-      	minFilter[0] = 257;
-      	maxFilter[2] = -1;
-      	maxFilter[1] = -1;
-      	maxFilter[0] = -1;
+      	minFilter[2] = 257+epsilon;
+      	minFilter[1] = 257+epsilon;
+      	minFilter[0] = 257+epsilon;
+      	maxFilter[2] = -1-epsilon;
+      	maxFilter[1] = -1-epsilon;
+      	maxFilter[0] = -1-epsilon;
       }
       else
         filtrar = false;
