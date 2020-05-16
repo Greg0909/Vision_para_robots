@@ -2,6 +2,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <queue>
+
 
 // http://www.pict uretopeople.org/color_converter.html
 
@@ -13,7 +15,7 @@ void flipImageBasic(const Mat &sourceImage, Mat &destinationImage);
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param);
 void plotHistograms();
 void blackWhite();
-void filterImage();
+void filterImage(Mat &binarizada);
 void getFilterRange();
 void clickRgbToHsv();
 void pixelRgbToHsv(int r, int g, int b, float *hsv);
@@ -23,6 +25,9 @@ void pixelYiqToRgb(float y, float i, float q, int *bgr);
 void printPoint(char colormodel);
 void imageRgbToHsv(const Mat &sourceImage, Mat &destinationImage);
 void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage);
+void segmentacion(const Mat &sourceImage, Mat &destinationImage);
+
+
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -30,6 +35,7 @@ int countFilter=0;
                                         // La escala de los 3 histogramas
 int h_scale[3] = {0,0,0};
 Mat currentImageRGB, currentImageHSV, currentImageYIQ, displayedImage;
+
 bool congelado = false;
                                         // r (RGB), h (HSV), y (YIQ)
 char modelo =  'r';
@@ -44,6 +50,10 @@ int maxFilter[3] = {-11, -11, -11};
 int epsilon = 10;
 int umbral_bw = 100;
 
+queue<Point> exploracion;
+vector< vector<int> > momentosOrdinarios;
+vector< vector<int> > momentosCentralizados;
+vector< vector<int> > momentosNormalizados;
 
 
 
@@ -54,7 +64,11 @@ int main(int argc, char *argv[])
   setMouseCallback("Image", mouseCoordinatesExampleCallback);
   VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
   //VideoCapture camera("Videotest");     //Comment for real camera usage
+
   bool isCameraAvailable = camera.isOpened();
+  camera.read(currentImageRGB);
+  Mat mascara( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
+  Mat segmentedImage( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
                                         // Limpia la terminal
   cout << "\033[2J\033[1;1H";
   cout << "Basic Show Image \t|\tUse 'x' or 'Esc' to terminate execution\n";
@@ -74,7 +88,9 @@ int main(int argc, char *argv[])
       }
       plotHistograms();
       blackWhite();
-      filterImage();
+      filterImage(mascara);
+      segmentedImage = Mat( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
+      segmentacion(mascara, segmentedImage);
     }
     else
     {
@@ -91,6 +107,8 @@ int main(int argc, char *argv[])
       displayedImage =currentImageRGB;
     }
     imshow("Image", displayedImage);
+
+    imshow("Image segmentada", segmentedImage);
 
 
     char key = waitKey(1);
@@ -409,7 +427,7 @@ void blackWhite()
 
 // referencia: https://docs.opencv.org/trunk/df/d9d/tutorial_py_colorspaces.html
 /*< Filter Image START >*/
-void filterImage(){
+void filterImage(Mat &binarizada){
 	if(maxFilter[0] !=-1 && countFilter >= 2){
 		int lowRed = minFilter[2] - epsilon;
 		int hiRed = maxFilter[2]  + epsilon;
@@ -423,7 +441,7 @@ void filterImage(){
 		inRange( displayedImage, Scalar(lowBl, lowGr, lowRed),Scalar (hiBl, hiGr, hiRed),mask);
 		bitwise_and(currentImageRGB,currentImageRGB, filter,mask= mask);
 		imshow("Filter",filter);
-
+    binarizada = mask;
 	}
 
 }
@@ -692,3 +710,171 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
     }
 }
 /*< Mouse callback END >*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+Point get_seed(const Mat &sourceImage)
+{
+  Point seed;
+  seed.y = rand() % sourceImage.rows;
+  seed.x = rand() % sourceImage.cols;
+  return seed;
+}
+
+bool check(const Mat &sourceImage, Mat &destinationImage, int x, int y)
+{
+  Vec3b cero(0,0,0);
+  return sourceImage.at<unsigned char>(y, x) == 255 && destinationImage.at<Vec3b>(y, x) == cero;
+}
+
+void segmentacion(const Mat &sourceImage, Mat &destinationImage)
+{
+  momentosOrdinarios.clear();
+  momentosCentralizados.clear();
+  momentosNormalizados.clear();
+  srand( (unsigned)time(NULL) );
+
+  Vec3b colores[10] = { Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255),
+                       Vec3b(255,100,100), Vec3b(100,255,100), Vec3b(100,100,255),
+                       Vec3b(255,200,0), Vec3b(0,255,200), Vec3b(200,0,255), Vec3b(255,255,255)};
+
+  int color = 0, intentos = 0;
+  vector<int> momentosOrdinariosTemp(6,0); 
+
+  while(intentos <100)
+  {
+    Point pixel = get_seed(sourceImage);
+
+    if(check(sourceImage, destinationImage, pixel.x, pixel.y))
+    {
+
+      //intentos = 0;
+      exploracion.push(pixel);
+      destinationImage.at<Vec3b>(pixel.y, pixel.x) = colores[color];
+      momentosOrdinariosTemp[0] = 1; //m00
+      momentosOrdinariosTemp[1] = pixel.x; //m10
+      momentosOrdinariosTemp[2] = pixel.y; //m01
+      momentosOrdinariosTemp[3] = pixel.x^2; //m20
+      momentosOrdinariosTemp[4] = pixel.y^2; //m02
+      momentosOrdinariosTemp[5] = (pixel.x) * (pixel.y); //m11
+      while(exploracion.size() > 0)
+      {
+        pixel = exploracion.front();
+        exploracion.pop();
+
+        //Norte
+        pixel.y -=1;
+        if(pixel.y >= 0 && check(sourceImage, destinationImage, pixel.x, pixel.y))
+        {
+          exploracion.push(pixel);
+          destinationImage.at<Vec3b>(pixel.y, pixel.x) = colores[color];
+          momentosOrdinariosTemp[0]++; //m00
+          momentosOrdinariosTemp[1] += pixel.x; //m10
+          momentosOrdinariosTemp[2] += pixel.y; //m01
+          momentosOrdinariosTemp[3] += pixel.x^2; //m20
+          momentosOrdinariosTemp[4] += pixel.y^2; //m02
+          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+        }
+        pixel.y +=1;
+
+        //Oeste
+        pixel.x -=1;
+        if(pixel.x >= 0 && check(sourceImage, destinationImage, pixel.x, pixel.y))
+        {
+          exploracion.push(pixel);
+          destinationImage.at<Vec3b>(pixel.y, pixel.x) = colores[color];
+          momentosOrdinariosTemp[0]++; //m00
+          momentosOrdinariosTemp[1] += pixel.x; //m10
+          momentosOrdinariosTemp[2] += pixel.y; //m01
+          momentosOrdinariosTemp[3] += pixel.x^2; //m20
+          momentosOrdinariosTemp[4] += pixel.y^2; //m02
+          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+        }
+        pixel.x +=1;
+
+        //Sur
+        pixel.y +=1;
+        if(pixel.y < sourceImage.rows && check(sourceImage, destinationImage, pixel.x, pixel.y))
+        {
+          exploracion.push(pixel);
+          destinationImage.at<Vec3b>(pixel.y, pixel.x) = colores[color];
+          momentosOrdinariosTemp[0]++; //m00
+          momentosOrdinariosTemp[1] += pixel.x; //m10
+          momentosOrdinariosTemp[2] += pixel.y; //m01
+          momentosOrdinariosTemp[3] += pixel.x^2; //m20
+          momentosOrdinariosTemp[4] += pixel.y^2; //m02
+          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+        }
+        pixel.y -=1;
+
+        //Este
+        pixel.x +=1;
+        if(pixel.x < sourceImage.cols && check(sourceImage, destinationImage, pixel.x, pixel.y))
+        {
+          exploracion.push(pixel);
+          destinationImage.at<Vec3b>(pixel.y, pixel.x) = colores[color];
+          momentosOrdinariosTemp[0]++; //m00
+          momentosOrdinariosTemp[1] += pixel.x; //m10
+          momentosOrdinariosTemp[2] += pixel.y; //m01
+          momentosOrdinariosTemp[3] += pixel.x^2; //m20
+          momentosOrdinariosTemp[4] += pixel.y^2; //m02
+          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+        }
+        pixel.x -=1;
+      }
+      color++;
+      momentosOrdinarios.push_back(momentosOrdinariosTemp);
+    }
+      
+    intentos++;
+    if(color == 4)
+      break;
+  }
+  cout << "Se encontraron " << color << " objetos"<< endl;
+  for(int i = 0; i<momentosOrdinarios.size(); i++)
+  {
+    cout << "Objeto " << i
+          << "\tm00: " << momentosOrdinarios[i][0]
+          << "\tm10: " << momentosOrdinarios[i][1]
+          << "\tm01: " << momentosOrdinarios[i][2]
+          << "\tm20: " << momentosOrdinarios[i][3]
+          << "\tm02: " << momentosOrdinarios[i][4]
+          << "\tm11: " << momentosOrdinarios[i][5] << endl;
+    float promedioX = momentosOrdinarios[i][1] / momentosOrdinarios[i][0];
+    float promedioY = momentosOrdinarios[i][2] / momentosOrdinarios[i][0];
+    destinationImage.at<Vec3b>(promedioY, promedioX) = colores[9];
+    destinationImage.at<Vec3b>(promedioY+1, promedioX) = colores[9];
+    destinationImage.at<Vec3b>(promedioY-1, promedioX) = colores[9];
+    destinationImage.at<Vec3b>(promedioY, promedioX+1) = colores[9];
+    destinationImage.at<Vec3b>(promedioY, promedioX-1) = colores[9];
+    vector<int> momentosCentralizadosTemp;
+    // miu20 = m20 * Px^2 * m00
+    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][3] -  promedioX*promedioX*(momentosOrdinarios[i][0])); 
+    // miu02 = m02 * Py^2 * m00
+    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][4] -  promedioY*promedioY*(momentosOrdinarios[i][0])); 
+    // miu11 = m20 - m10*Py - m01*Px +PxPym00
+    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][3] -  promedioY*(momentosOrdinarios[i][1])
+                                          -  promedioX*(momentosOrdinarios[i][2]) 
+                                          -  promedioY*promedioX*(momentosOrdinarios[i][0])); 
+    momentosCentralizados.push_back(momentosCentralizadosTemp);
+
+    vector<int> momentosNormalizadosTemp;
+    // n20 = miu20/(m00^(2))
+    momentosNormalizadosTemp.push_back(momentosCentralizados[i][0]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])));
+    // n02 = miu02/(m00^(2))
+    momentosNormalizadosTemp.push_back(momentosCentralizados[i][1]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])));
+    // n11 = miu11/(m00^(2))
+    momentosNormalizadosTemp.push_back(momentosCentralizados[i][2]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])));
+    momentosNormalizados.push_back(momentosNormalizadosTemp);
+  }
+}
