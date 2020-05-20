@@ -974,22 +974,60 @@ void detectObjects()
   objetos[0][2] = 0.0207349943413; // range 1
   objetos[0][3] = 0.000481942; // range 2
 
+  //Manzana
+  objetos[1][0] = 0.166114421487603; // ph 1
+  objetos[1][1] = 0.000696026644628; // ph 2
+  objetos[1][2] = 0.00336031365786; // range 1
+  objetos[1][3] = 0.000704323522025; // range 2
+
+  //Vaso
+  objetos[2][0] = 0.253294305882353; // ph 1
+  objetos[2][1] = 0.034330392352941; // ph 2
+  objetos[2][2] = 0.003013904277617; // range 1
+  objetos[2][3] = 0.001464262987825; // range 2
+
+  //Pizza
+  objetos[3][0] = 0.236844072727273; // ph 1
+  objetos[3][1] = 0.020638335454546; // ph 2
+  objetos[3][2] = 0.009169842035106; // range 1
+  objetos[3][3] = 0.004021903010856; // range 2
+
+
+
   for(int i=0; i<fi1.size(); i++)
   {
+    bool objetoCercano[4];
+    float minDistance = 100000;
+    int minIndex;
+    for(int h=0; h<4; h++)
+    {
+        float distance = sqrt( pow(fi1[i]-objetos[h][0], 2) + pow(fi2[i]-objetos[h][1], 2) );
+        if( distance < minDistance )
+        {
+          minDistance = distance;
+          minIndex = h;
+        }
+          
+        objetoCercano[h] = false;
+    }
+
+    objetoCercano[minIndex] = true;
+    cout << minIndex << endl;
+
     //Dona
-    if(checkpoint(objetos[0][0], objetos[0][1], fi1[i], fi2[i], objetos[0][2], objetos[0][3]) <= 1)
+    if(checkpoint(objetos[0][0], objetos[0][1], fi1[i], fi2[i], objetos[0][2], objetos[0][3]) <= 1 && objetoCercano[0])
       cout << "DONAA" << endl;
 
     //Manzana
-    if(checkpoint(0.166114421487603, 0.000696026644628, fi1[i], fi2[i], 0.00336031365786, 0.000704323522025) <= 1)
+    if(checkpoint(objetos[1][0], objetos[1][1], fi1[i], fi2[i], objetos[1][2], objetos[1][3]) <= 1 && objetoCercano[1])
       cout << "Manzana" << endl;
 
     //Vaso
-    if(checkpoint(0.253294305882353, 0.034330392352941, fi1[i], fi2[i], 0.005013904277617, 0.01464262987825) <= 1)
+    if(checkpoint(objetos[2][0], objetos[2][1], fi1[i], fi2[i], objetos[2][2], objetos[2][3]) <= 1 && objetoCercano[2])
       cout << "Vaso" << endl;
 
     //Pizza
-    if(checkpoint(0.236844072727273, 0.020638335454546, fi1[i], fi2[i], 0.010169842035106, 0.01021903010856) <= 1)
+    if(checkpoint(objetos[3][0], objetos[3][1], fi1[i], fi2[i], objetos[3][2], objetos[3][3]) <= 1 && objetoCercano[3])
       cout << "Pizza" << endl;
   }
 }
