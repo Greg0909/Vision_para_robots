@@ -29,7 +29,7 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage);
 void dilateImage(const Mat &sourceImage, Mat &destinationImage);
 void erodeImage(const Mat &sourceImage, Mat &destinationImage);
 int checkpoint(float h, float k, float x, float y, float a, float b) ;
-void detectObjects();
+void detectObjects(Mat &sourceImage);
 
 
                                         // VARIABLES GLOBALES
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
       erodeImage(mascara,mascara);
       erodeImage(mascara,mascara);
       segmentacion(mascara, segmentedImage);
-      detectObjects();
+      detectObjects(segmentedImage);
     }
     else
     {
@@ -876,7 +876,7 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
 
 //  cout << "Shape x " << sourceImage.cols << " y " << sourceImage.rows << endl;
 
-/*  if(sourceImage.channels() == 1)
+ /* if(sourceImage.channels() == 1)
   {
   Moments momentss;
   momentss = moments(sourceImage, true);
@@ -906,11 +906,10 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
     float promedioX = momentosOrdinarios[i][1] / momentosOrdinarios[i][0];
     float promedioY = momentosOrdinarios[i][2] / momentosOrdinarios[i][0];
 
-    destinationImage.at<Vec3b>(promedioY, promedioX) = colores[9];
-    destinationImage.at<Vec3b>(promedioY+1, promedioX) = colores[9];
-    destinationImage.at<Vec3b>(promedioY-1, promedioX) = colores[9];
-    destinationImage.at<Vec3b>(promedioY, promedioX+1) = colores[9];
-    destinationImage.at<Vec3b>(promedioY, promedioX-1) = colores[9];
+
+    line(destinationImage, Point(promedioX-5, promedioY), Point(promedioX+5, promedioY), Scalar(255,255,255), 2, CV_FILLED );
+    line(destinationImage, Point(promedioX, promedioY-5), Point(promedioX, promedioY+5), Scalar(255,255,255), 2, CV_FILLED );
+
 
     vector<float> momentosCentralizadosTemp;
     // miu20 = m20 - Px^2 * m00
@@ -963,9 +962,28 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
 }
 
 
+void mira(int cuadrante, Mat &sourceImage)
+{
+  rectangle(sourceImage, Point(520,20), Point(620, 120), Scalar(255,255,255), 1, 4);
+  switch(cuadrante)
+  {
+    case 1:
+        rectangle(sourceImage, Point(522,22), Point(568, 68), Scalar(0,0,255), -1, 4);
+        break;
+    case 2:
+        rectangle(sourceImage, Point(572,22), Point(618, 68), Scalar(255,0,0), -1, 4);
+        break;
+    case 3:
+        rectangle(sourceImage, Point(522,72), Point(568, 118), Scalar(0,255,255), -1, 4);
+        break;
+    case 4:
+        rectangle(sourceImage, Point(572,72), Point(618, 118), Scalar(255,0,255), -1, 4);
+        break;
+  }
+}
 
 
-void detectObjects()
+void detectObjects(Mat &sourceImage)
 {
   float objetos[4][4];
   //Dona
@@ -983,16 +1001,21 @@ void detectObjects()
   //Vaso
   objetos[2][0] = 0.253294305882353; // ph 1
   objetos[2][1] = 0.034330392352941; // ph 2
-  objetos[2][2] = 0.003013904277617; // range 1
-  objetos[2][3] = 0.001464262987825; // range 2
-
-  //Pizza
-  objetos[3][0] = 0.236844072727273; // ph 1
-  objetos[3][1] = 0.020638335454546; // ph 2
-  objetos[3][2] = 0.009169842035106; // range 1
-  objetos[3][3] = 0.004021903010856; // range 2
+  objetos[2][2] = 0.010013904277617; // range 1
+  objetos[2][3] = 0.005464262987825; // range 2
 
 
+  //Cuchillo
+  objetos[3][0] = 0.921740811111111; // ph 1
+  objetos[3][1] = 0.819866444444444; // ph 2
+  objetos[3][2] = 0.076673860572905; // range 1
+  objetos[3][3] = 0.149359795746056; // range 2
+
+
+  bool cuchuillo = false;
+  bool dona = false;
+  bool vaso = false;
+  bool manzana = false;
 
   for(int i=0; i<fi1.size(); i++)
   {
@@ -1012,24 +1035,46 @@ void detectObjects()
     }
 
     objetoCercano[minIndex] = true;
-    cout << minIndex << endl;
 
-    //Dona
+    //Dona (redondo)
     if(checkpoint(objetos[0][0], objetos[0][1], fi1[i], fi2[i], objetos[0][2], objetos[0][3]) <= 1 && objetoCercano[0])
+    {
       cout << "DONAA" << endl;
+      dona = true;
+    }
 
-    //Manzana
+    //Manzana (redondo)
     if(checkpoint(objetos[1][0], objetos[1][1], fi1[i], fi2[i], objetos[1][2], objetos[1][3]) <= 1 && objetoCercano[1])
+    {
       cout << "Manzana" << endl;
+      manzana = true;
+    }
 
-    //Vaso
+    //Vaso (Alargado)
     if(checkpoint(objetos[2][0], objetos[2][1], fi1[i], fi2[i], objetos[2][2], objetos[2][3]) <= 1 && objetoCercano[2])
+    {
       cout << "Vaso" << endl;
+      vaso = true;
+    }
 
-    //Pizza
+    //Cuchillo (Alargado)
     if(checkpoint(objetos[3][0], objetos[3][1], fi1[i], fi2[i], objetos[3][2], objetos[3][3]) <= 1 && objetoCercano[3])
-      cout << "Pizza" << endl;
+    {
+      cout << "Cuchillo" << endl;
+      cuchuillo = true;
+    }
   }
+
+  int cuadrante = 0;
+  if(dona && cuchuillo)
+    cuadrante = 4;
+  if(cuchuillo && manzana)
+    cuadrante = 3;
+  if(manzana && vaso)
+    cuadrante = 1;
+  if(vaso && dona)
+    cuadrante = 2;
+  mira(cuadrante, sourceImage);
 }
 
 
