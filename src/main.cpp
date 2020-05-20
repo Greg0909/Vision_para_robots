@@ -30,7 +30,7 @@ void dilateImage(const Mat &sourceImage, Mat &destinationImage);
 void erodeImage(const Mat &sourceImage, Mat &destinationImage);
 int checkpoint(float h, float k, float x, float y, float a, float b) ;
 void detectObjects();
-
+void drawGraph(float objetos[][4]);
 
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
@@ -1030,6 +1030,63 @@ void detectObjects()
     if(checkpoint(objetos[3][0], objetos[3][1], fi1[i], fi2[i], objetos[3][2], objetos[3][3]) <= 1 && objetoCercano[3])
       cout << "Pizza" << endl;
   }
+
+	drawGraph(objetos);
+	
+}
+
+void drawGraph(float objetos[][4]){
+
+	int graph_h =450;
+	int graph_w=800;
+	int fontFace = FONT_HERSHEY_SCRIPT_SIMPLEX;
+	double fontScale = 0.5;
+	int thickness = 1;	
+	Mat graphs = Mat( graph_h+30,graph_w+30, CV_8UC3, Scalar( 0,0,0) );
+
+	//obtenido manualmente. Cambiar el # de objeto si es necesario
+	float x_bound = objetos[2][0]+objetos[2][2]*2;   //el maximo valor de x + 2*desv estandar
+	float y_bound = objetos[2][1]+objetos[2][3]*2;   //el máximo valor de y + 2*desv estandar
+	Vec3b colores[4] = { Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255),
+                       Vec3b(100,255,100)};	
+	for (int i = 0; i<4; i++){
+		int x_center= (objetos[i][0])*graph_w/(x_bound);  //regla de 3
+		int y_center=graph_h-(objetos[i][1])*graph_h/(y_bound);  //regla de 3
+		Point center = Point(x_center, y_center);
+		Size axes = Size((objetos[i][2])*graph_w/(2*x_bound),(objetos[i][3])*graph_h/(2*y_bound));
+		//cout<< "\n\n\n\ncenter "<<i <<" : " << x_center <<" , " << y_center <<endl;
+		//cout<< "axes: " <<(objetos[i][2])*graph_w/(2*x_bound)<<","<<(objetos[i][3])*graph_h/(2*y_bound) <<endl;
+		ellipse(graphs, center, axes, 0 ,0 ,360, colores[i] ,1,8);
+//		int x_p = fi1[i]*graph_w/(x_bound);
+//		int y_p = graph_h-fi2[i]*graph_h/(y_bound);
+//		if (x_p > 0 && x_p<graph_w && y_p > 0 && y_p < graph_h)
+//			circle(graphs, Point(x_p,y_p), 2, Scalar::all(255), CV_FILLED,8);
+	}
+
+	//Pone los labels
+	Point textOrg(0, 30);
+	string text = to_string(y_bound);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	textOrg.y = graph_h/2;
+	text = to_string(y_bound/2);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+
+	textOrg.x =0;
+	textOrg.y=graph_h+25;
+	text = to_string(0);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	textOrg.x = graph_w/2;
+	text = to_string(x_bound/2);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	textOrg.x = graph_w-20;
+	text = to_string(x_bound);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+
+	//dibuja los ejes
+	line(graphs, Point(20, graph_h), Point(20,0),Scalar (255,255,255), 1,8);
+	line(graphs, Point(20, graph_h), Point(graph_w, graph_h), Scalar(255,255,255), 1,8);
+
+	imshow("Graphs",graphs);
 }
 
 
