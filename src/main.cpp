@@ -51,9 +51,11 @@ int epsilon = 10;
 int umbral_bw = 100;
 
 queue<Point> exploracion;
-vector< vector<int> > momentosOrdinarios;
-vector< vector<int> > momentosCentralizados;
-vector< vector<int> > momentosNormalizados;
+vector< vector<float> > momentosOrdinarios;
+vector< vector<float> > momentosCentralizados;
+vector< vector<float> > momentosNormalizados;
+vector< float > fi1;
+vector< float > fi2;
 
 
 
@@ -739,9 +741,12 @@ bool check(const Mat &sourceImage, Mat &destinationImage, int x, int y)
 
 void segmentacion(const Mat &sourceImage, Mat &destinationImage)
 {
+  fi1.clear();
+  fi2.clear();
   momentosOrdinarios.clear();
   momentosCentralizados.clear();
   momentosNormalizados.clear();
+
   srand( (unsigned)time(NULL) );
 
   Vec3b colores[10] = { Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255),
@@ -749,10 +754,11 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
                        Vec3b(255,200,0), Vec3b(0,255,200), Vec3b(200,0,255), Vec3b(255,255,255)};
 
   int color = 0, intentos = 0;
-  vector<int> momentosOrdinariosTemp(6,0); 
+  
 
   while(intentos <100)
   {
+    vector<float> momentosOrdinariosTemp(6,0); 
     Point pixel = get_seed(sourceImage);
 
     if(check(sourceImage, destinationImage, pixel.x, pixel.y))
@@ -764,9 +770,9 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
       momentosOrdinariosTemp[0] = 1; //m00
       momentosOrdinariosTemp[1] = pixel.x; //m10
       momentosOrdinariosTemp[2] = pixel.y; //m01
-      momentosOrdinariosTemp[3] = pixel.x^2; //m20
-      momentosOrdinariosTemp[4] = pixel.y^2; //m02
-      momentosOrdinariosTemp[5] = (pixel.x) * (pixel.y); //m11
+      momentosOrdinariosTemp[3] = pixel.x * pixel.x; //m20
+      momentosOrdinariosTemp[4] = pixel.y * pixel.y; //m02
+      momentosOrdinariosTemp[5] = pixel.x * pixel.y; //m11
       while(exploracion.size() > 0)
       {
         pixel = exploracion.front();
@@ -781,9 +787,9 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
           momentosOrdinariosTemp[0]++; //m00
           momentosOrdinariosTemp[1] += pixel.x; //m10
           momentosOrdinariosTemp[2] += pixel.y; //m01
-          momentosOrdinariosTemp[3] += pixel.x^2; //m20
-          momentosOrdinariosTemp[4] += pixel.y^2; //m02
-          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+          momentosOrdinariosTemp[3] += pixel.x * pixel.x; //m20
+          momentosOrdinariosTemp[4] += pixel.y * pixel.y; //m02
+          momentosOrdinariosTemp[5] += pixel.x * pixel.y; //m11
         }
         pixel.y +=1;
 
@@ -796,9 +802,9 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
           momentosOrdinariosTemp[0]++; //m00
           momentosOrdinariosTemp[1] += pixel.x; //m10
           momentosOrdinariosTemp[2] += pixel.y; //m01
-          momentosOrdinariosTemp[3] += pixel.x^2; //m20
-          momentosOrdinariosTemp[4] += pixel.y^2; //m02
-          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+          momentosOrdinariosTemp[3] += pixel.x * pixel.x; //m20
+          momentosOrdinariosTemp[4] += pixel.y * pixel.y; //m02
+          momentosOrdinariosTemp[5] += pixel.x * pixel.y; //m11
         }
         pixel.x +=1;
 
@@ -811,9 +817,9 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
           momentosOrdinariosTemp[0]++; //m00
           momentosOrdinariosTemp[1] += pixel.x; //m10
           momentosOrdinariosTemp[2] += pixel.y; //m01
-          momentosOrdinariosTemp[3] += pixel.x^2; //m20
-          momentosOrdinariosTemp[4] += pixel.y^2; //m02
-          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+          momentosOrdinariosTemp[3] += pixel.x * pixel.x; //m20
+          momentosOrdinariosTemp[4] += pixel.y * pixel.y; //m02
+          momentosOrdinariosTemp[5] += pixel.x * pixel.y; //m11
         }
         pixel.y -=1;
 
@@ -826,9 +832,9 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
           momentosOrdinariosTemp[0]++; //m00
           momentosOrdinariosTemp[1] += pixel.x; //m10
           momentosOrdinariosTemp[2] += pixel.y; //m01
-          momentosOrdinariosTemp[3] += pixel.x^2; //m20
-          momentosOrdinariosTemp[4] += pixel.y^2; //m02
-          momentosOrdinariosTemp[5] += (pixel.x) * (pixel.y); //m11
+          momentosOrdinariosTemp[3] += pixel.x * pixel.x; //m20
+          momentosOrdinariosTemp[4] += pixel.y * pixel.y; //m02
+          momentosOrdinariosTemp[5] += pixel.x * pixel.y; //m11
         }
         pixel.x -=1;
       }
@@ -843,38 +849,49 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
   cout << "Se encontraron " << color << " objetos"<< endl;
   for(int i = 0; i<momentosOrdinarios.size(); i++)
   {
-    cout << "Objeto " << i
-          << "\tm00: " << momentosOrdinarios[i][0]
-          << "\tm10: " << momentosOrdinarios[i][1]
-          << "\tm01: " << momentosOrdinarios[i][2]
-          << "\tm20: " << momentosOrdinarios[i][3]
-          << "\tm02: " << momentosOrdinarios[i][4]
-          << "\tm11: " << momentosOrdinarios[i][5] << endl;
     float promedioX = momentosOrdinarios[i][1] / momentosOrdinarios[i][0];
     float promedioY = momentosOrdinarios[i][2] / momentosOrdinarios[i][0];
+
     destinationImage.at<Vec3b>(promedioY, promedioX) = colores[9];
     destinationImage.at<Vec3b>(promedioY+1, promedioX) = colores[9];
     destinationImage.at<Vec3b>(promedioY-1, promedioX) = colores[9];
     destinationImage.at<Vec3b>(promedioY, promedioX+1) = colores[9];
     destinationImage.at<Vec3b>(promedioY, promedioX-1) = colores[9];
-    vector<int> momentosCentralizadosTemp;
-    // miu20 = m20 * Px^2 * m00
-    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][3] -  promedioX*promedioX*(momentosOrdinarios[i][0])); 
-    // miu02 = m02 * Py^2 * m00
+
+    vector<float> momentosCentralizadosTemp;
+    // miu20 = m20 - Px^2 * m00
+    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][3] -  promedioX*promedioX*(momentosOrdinarios[i][0]));
+
+    cout << momentosOrdinarios[i][3] << " - " <<  promedioX*promedioX <<" * "<<(momentosOrdinarios[i][0]) <<endl;
+    // miu02 = m02 - Py^2 * m00
     momentosCentralizadosTemp.push_back( momentosOrdinarios[i][4] -  promedioY*promedioY*(momentosOrdinarios[i][0])); 
-    // miu11 = m20 - m10*Py - m01*Px +PxPym00
-    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][3] -  promedioY*(momentosOrdinarios[i][1])
-                                          -  promedioX*(momentosOrdinarios[i][2]) 
+    // miu11 = m11 - PxPym00
+    momentosCentralizadosTemp.push_back( momentosOrdinarios[i][5] 
                                           -  promedioY*promedioX*(momentosOrdinarios[i][0])); 
     momentosCentralizados.push_back(momentosCentralizadosTemp);
 
-    vector<int> momentosNormalizadosTemp;
+    vector<float> momentosNormalizadosTemp;
     // n20 = miu20/(m00^(2))
-    momentosNormalizadosTemp.push_back(momentosCentralizados[i][0]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])));
+    momentosNormalizadosTemp.push_back(momentosCentralizados[i][0]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])) );
     // n02 = miu02/(m00^(2))
-    momentosNormalizadosTemp.push_back(momentosCentralizados[i][1]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])));
+    momentosNormalizadosTemp.push_back(momentosCentralizados[i][1]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])) );
     // n11 = miu11/(m00^(2))
-    momentosNormalizadosTemp.push_back(momentosCentralizados[i][2]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])));
+    momentosNormalizadosTemp.push_back(momentosCentralizados[i][2]/(momentosOrdinarios[i][0]*(momentosOrdinarios[i][0])) );
     momentosNormalizados.push_back(momentosNormalizadosTemp);
+
+    cout << "Objeto " << i
+          << "\tmiu20: " << momentosCentralizados[i][0]
+          << "\tmiu02: " << momentosCentralizados[i][1]
+          << "\tmiu11: " << momentosCentralizados[i][2] << endl;
+
+    //fi1 = n20 + n02
+    fi1.push_back(momentosNormalizados[i][0] + momentosNormalizados[i][1]);
+    //fi2 = (n20 - n02)^2 + 4(n11)^2
+    fi2.push_back( (momentosNormalizados[i][0] - momentosNormalizados[i][1]) * (momentosNormalizados[i][0] - momentosNormalizados[i][1]) 
+      + 4*(momentosNormalizados[i][2]) * (momentosNormalizados[i][2]) );
+
+    cout << "Objeto " << i
+          << "\tfi1: " << fi1[i]
+          << "\tfi2: " << fi2[i] << endl;
   }
 }
