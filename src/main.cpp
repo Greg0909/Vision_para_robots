@@ -3,8 +3,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <queue>
+#include <math.h>
 
-
+#define PI 3.14159265
 // http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
@@ -28,9 +29,9 @@ void imageRgbToYiq(const Mat &sourceImage, Mat &destinationImage);
 void segmentacion(const Mat &sourceImage, Mat &destinationImage);
 void dilateImage(const Mat &sourceImage, Mat &destinationImage);
 void erodeImage(const Mat &sourceImage, Mat &destinationImage);
-int checkpoint(float h, float k, float x, float y, float a, float b) ;
+int checkpoint(float h, float k, float x, float y, float a, float b, float angle) ;
 void detectObjects(Mat &sourceImage);
-void drawGraph(float objetos[][4]);
+void drawGraph(float objetos[][5]);
 
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
@@ -953,6 +954,17 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
     fi2.push_back( (momentosNormalizados[i][0] - momentosNormalizados[i][1]) * (momentosNormalizados[i][0] - momentosNormalizados[i][1]) 
       + 4*(momentosNormalizados[i][2]) * (momentosNormalizados[i][2]) );
 
+    if(fi2[i] > 0.005)
+    {
+      float angle = 0.5 * atan2(2*momentosCentralizados[i][2], momentosCentralizados[i][0] - momentosCentralizados[i][1]);
+      cout<<"\t\t\t\t\t" << angle << endl;
+      int x  = cos( PI/180* 90 * (-angle)/1.57 ) * 40 ;
+      int y  = sin( PI/180* 90 * (-angle)/1.57 ) * 40;
+
+      line(destinationImage, Point(promedioX-x, promedioY + y), 
+            Point( promedioX+x, promedioY-y), Scalar(255,10,255), 1.4, 8 );
+    }
+
     /*cout << "Objeto " << i
           << "\tfi1: " << fi1[i]
           << "\tfi2: " << fi2[i] << endl;*/
@@ -985,31 +997,35 @@ void mira(int cuadrante, Mat &sourceImage)
 
 void detectObjects(Mat &sourceImage)
 {
-  float objetos[4][4];
+  float objetos[4][5];
   //Dona
   objetos[0][0] = 0.242956361111111; // ph 1
   objetos[0][1] = 0.000584436166667; // ph 2
   objetos[0][2] = 0.0207349943413; // range 1
   objetos[0][3] = 0.000481942; // range 2
+  objetos[0][4] = 0; // angulo
 
   //Manzana
   objetos[1][0] = 0.166114421487603; // ph 1
   objetos[1][1] = 0.000696026644628; // ph 2
   objetos[1][2] = 0.00336031365786; // range 1
   objetos[1][3] = 0.000704323522025; // range 2
+  objetos[1][4] = 0; // angulo
 
   //Vaso
   objetos[2][0] = 0.253294305882353; // ph 1
   objetos[2][1] = 0.034330392352941; // ph 2
   objetos[2][2] = 0.010013904277617; // range 1
   objetos[2][3] = 0.005464262987825; // range 2
+  objetos[2][4] = 0; // angulo
 
 
   //Cuchillo
-  objetos[3][0] = 0.921740811111111; // ph 1
-  objetos[3][1] = 0.819866444444444; // ph 2
-  objetos[3][2] = 0.076673860572905; // range 1
-  objetos[3][3] = 0.149359795746056; // range 2
+  objetos[3][0] = 0.84343 -0.05857; // ph 1
+  objetos[3][1] = 0.6828 - 0.1015; // ph 2
+  objetos[3][2] = 0.2; // range 1
+  objetos[3][3] = 0.03; // range 2
+  objetos[3][4] = -60; // angulo
 
 
   bool cuchuillo = false;
@@ -1037,28 +1053,28 @@ void detectObjects(Mat &sourceImage)
     objetoCercano[minIndex] = true;
 
     //Dona (redondo)
-    if(checkpoint(objetos[0][0], objetos[0][1], fi1[i], fi2[i], objetos[0][2], objetos[0][3]) <= 1 && objetoCercano[0])
+    if(checkpoint(objetos[0][0], objetos[0][1], fi1[i], fi2[i], objetos[0][2], objetos[0][3], objetos[0][4]) <= 1 && objetoCercano[0])
     {
       cout << "DONAA" << endl;
       dona = true;
     }
 
     //Manzana (redondo)
-    if(checkpoint(objetos[1][0], objetos[1][1], fi1[i], fi2[i], objetos[1][2], objetos[1][3]) <= 1 && objetoCercano[1])
+    if(checkpoint(objetos[1][0], objetos[1][1], fi1[i], fi2[i], objetos[1][2], objetos[1][3], objetos[1][4]) <= 1 && objetoCercano[1])
     {
       cout << "Manzana" << endl;
       manzana = true;
     }
 
     //Vaso (Alargado)
-    if(checkpoint(objetos[2][0], objetos[2][1], fi1[i], fi2[i], objetos[2][2], objetos[2][3]) <= 1 && objetoCercano[2])
+    if(checkpoint(objetos[2][0], objetos[2][1], fi1[i], fi2[i], objetos[2][2], objetos[2][3], objetos[2][4]) <= 1 && objetoCercano[2])
     {
       cout << "Vaso" << endl;
       vaso = true;
     }
 
     //Cuchillo (Alargado)
-    if(checkpoint(objetos[3][0], objetos[3][1], fi1[i], fi2[i], objetos[3][2], objetos[3][3]) <= 1 && objetoCercano[3])
+    if(checkpoint(objetos[3][0], objetos[3][1], fi1[i], fi2[i], objetos[3][2], objetos[3][3], objetos[3][4]) <= 1 && objetoCercano[3])
     {
       cout << "Cuchillo" << endl;
       cuchuillo = true;
@@ -1079,7 +1095,7 @@ void detectObjects(Mat &sourceImage)
 	
 }
 
-void drawGraph(float objetos[][4]){
+void drawGraph(float objetos[][5]){
 
 	int graph_h =450;
 	int graph_w=800;
@@ -1089,8 +1105,8 @@ void drawGraph(float objetos[][4]){
 	Mat graphs = Mat( graph_h+30,graph_w+30, CV_8UC3, Scalar( 0,0,0) );
 
 	//obtenido manualmente. Cambiar el # de objeto si es necesario
-	float x_bound = objetos[2][0]+objetos[2][2]*2;   //el maximo valor de x + 2*desv estandar
-	float y_bound = objetos[2][1]+objetos[2][3]*2;   //el máximo valor de y + 2*desv estandar
+	float x_bound = objetos[3][0]+objetos[3][2]*2;   //el maximo valor de x + 2*desv estandar
+	float y_bound = objetos[3][1]+objetos[3][3]*2;   //el máximo valor de y + 2*desv estandar
 	Vec3b colores[4] = { Vec3b(255,0,0), Vec3b(0,255,0), Vec3b(0,0,255),
                        Vec3b(100,255,100)};	
 	for (int i = 0; i<4; i++){
@@ -1100,12 +1116,17 @@ void drawGraph(float objetos[][4]){
 		Size axes = Size((objetos[i][2])*graph_w/(2*x_bound),(objetos[i][3])*graph_h/(2*y_bound));
 		//cout<< "\n\n\n\ncenter "<<i <<" : " << x_center <<" , " << y_center <<endl;
 		//cout<< "axes: " <<(objetos[i][2])*graph_w/(2*x_bound)<<","<<(objetos[i][3])*graph_h/(2*y_bound) <<endl;
-		ellipse(graphs, center, axes, 0 ,0 ,360, colores[i] ,1,8);
-//		int x_p = fi1[i]*graph_w/(x_bound);
-//		int y_p = graph_h-fi2[i]*graph_h/(y_bound);
-//		if (x_p > 0 && x_p<graph_w && y_p > 0 && y_p < graph_h)
-//			circle(graphs, Point(x_p,y_p), 2, Scalar::all(255), CV_FILLED,8);
+		ellipse(graphs, center, axes, objetos[i][4] ,0, 360, colores[i] ,1,8);
+    for(int h=0; h<fi1.size(); h++)
+    {
+      int x_p = fi1[h]*graph_w/(x_bound);
+      int y_p = graph_h-fi2[h]*graph_h/(y_bound);
+      if (x_p > 0 && x_p<graph_w && y_p > 0 && y_p < graph_h)
+      circle(graphs, Point(x_p,y_p), 3, Scalar::all(255), CV_FILLED,8);
+    } 
 	}
+
+  
 
 	//Pone los labels
 	Point textOrg(0, 30);
@@ -1134,13 +1155,13 @@ void drawGraph(float objetos[][4]){
 }
 
 
-int checkpoint(float h, float k, float x, float y, float a, float b) 
+int checkpoint(float h, float k, float x, float y, float a, float b, float angle) 
 { 
   
     // checking the equation of 
     // ellipse with the given point 
-    int p = (pow((x - h), 2) / pow(a, 2)) 
-            + (pow((y - k), 2) / pow(b, 2)); 
+    int p = pow( cos(angle*PI/180)*(x-h) + sin(angle*PI/180)*(y-k) ,2) / pow(a,2)
+            + pow( sin(angle*PI/180)*(x-h) - cos(angle*PI/180)*(y-k) ,2) / pow(b,2);
   
     return p; 
 } 
