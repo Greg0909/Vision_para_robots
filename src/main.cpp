@@ -32,14 +32,20 @@ void erodeImage(const Mat &sourceImage, Mat &destinationImage);
 int checkpoint(float h, float k, float x, float y, float a, float b, float angle) ;
 void detectObjects(Mat &sourceImage);
 void drawGraph(float objetos[][5]);
-
+void PrepareParking();
+void parkingLotSpace();
+void Enhancement(const Mat &sourceImage, Mat &destinationImage);
+void SobelFilter(const Mat &sourceImage, Mat &destinationImage);
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
 int countFilter=0;
+bool in = false;
+
                                         // La escala de los 3 histogramas
 int h_scale[3] = {0,0,0};
 Mat currentImageRGB, currentImageHSV, currentImageYIQ, displayedImage;
+Mat parkingLot,displayingParking;
 Mat kernel;
 
 bool congelado = false;
@@ -64,15 +70,17 @@ vector< float > fi1;
 vector< float > fi2;
 
 
+Mat grad_x, grad_y;
 
 /*< Main START >*/
 int main(int argc, char *argv[])
 {
   namedWindow("Image");
   setMouseCallback("Image", mouseCoordinatesExampleCallback);
-  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  //VideoCapture camera("Videotest");     //Comment for real camera usage
+  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  VideoCapture camera("Videotest");     //Comment for real camera usage
 
+  PrepareParking();
   bool isCameraAvailable = camera.isOpened();
   camera.read(currentImageRGB);
   Mat mascara( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
@@ -98,6 +106,7 @@ int main(int argc, char *argv[])
       blackWhite();
       filterImage(mascara);
       segmentedImage = Mat( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
+      parkingLotSpace();
       dilateImage(mascara, mascara);
       dilateImage(mascara, mascara);
       dilateImage(mascara, mascara);
@@ -122,6 +131,7 @@ int main(int argc, char *argv[])
       displayedImage =currentImageRGB;
     }
     imshow("Image", displayedImage);
+    imshow("Parking", displayingParking);
 
     imshow("Image segmentada", segmentedImage);
 
@@ -129,6 +139,12 @@ int main(int argc, char *argv[])
     char key = waitKey(1);
     switch(key)
     {
+        case 'B':
+        modelo = 'B';
+        break;
+        case 'R':
+        modelo = 'R';
+        break;
       case 'r':
         defaultColor = false;
         modelo = 'r';
@@ -190,6 +206,66 @@ int main(int argc, char *argv[])
 }
 /*< Main END >*/
 
+void Enhancement(const Mat &sourceImage, Mat &destinationImage){
+   Mat kernel = (Mat_<double>(3, 3) << 0, -1, 0,
+              -1, 5, -1,
+              0, -1, 0);  //Matriox obtained from source
+  filter2D(sourceImage, destinationImage, -1, kernel);
+}
+
+void SobelFilter(const Mat &sourceImage, Mat &destinationImage){
+   Sobel( sourceImage, grad_x, CV_16S, 1, 0, 3, 1, 0, BORDER_DEFAULT );
+        convertScaleAbs( grad_x, grad_x );
+
+        /// Gradient Y
+        //Scharr( src_gray, grad_y, ddepth, 0, 1, scale, delta, BORDER_DEFAULT );
+        Sobel( sourceImage, grad_y, CV_16S, 0, 1, 3, 1, 0, BORDER_DEFAULT );
+        convertScaleAbs( grad_y, grad_y);
+        addWeighted( grad_x, 0.5, grad_y, 0.5, 0, destinationImage);
+}
+
+void PrepareParking(){
+ parkingLot = imread("Parking.jpeg", CV_LOAD_IMAGE_COLOR);
+  displayingParking = parkingLot;
+  SobelFilter(displayingParking,displayingParking);
+  
+  GaussianBlur(displayingParking, displayingParking, Size(3, 3) , 0);
+
+}
+
+
+
+void parkingLotSpace(){
+  int limit = 10;
+  if(modelo == 'B'){
+    Mat channels[3];
+    Mat black_white( displayingParking.rows, displayingParking.cols, CV_8UC3, Scalar( 0) );
+    Mat mask;
+
+    split(parkingLot, channels);
+    black_white = channels[0]*0.1 + channels[1]*0.3 + channels[2]*0.6;
+    inRange( black_white, Scalar(110),Scalar (256),mask);
+    //filterImage(mask);
+
+    if(in == false){
+      medianBlur(mask, mask, 9);
+      blur(mask, mask, Size(3, 3));
+
+      kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
+      erodeImage(mask, mask);
+      medianBlur(mask, mask, 9);
+
+      dilate(mask, mask, kernel);
+            kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
+
+      morphologyEx(mask, mask, MORPH_CLOSE, kernel);
+
+        
+      in = true;
+    }
+    imshow("ParkingBinarizado", mask);
+  }
+}
 
 /*< Plot Histograms START >*/
 void plotHistograms()
@@ -432,10 +508,9 @@ void blackWhite()
     displayedImage = black_white;
     imshow("Binarizada", mask);
   }  
-  else
-  {
-    destroyWindow("Binarizada");
-  }
+else{
+      destroyWindow("Binarizada");
+    }
 }
 /*< Black and white and binary END >*/
 
