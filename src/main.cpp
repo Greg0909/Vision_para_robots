@@ -6,6 +6,7 @@
 #include <math.h>
 
 #define PI 3.14159265
+#define espacio 5
 // http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
@@ -33,9 +34,12 @@ int checkpoint(float h, float k, float x, float y, float a, float b, float angle
 void detectObjects(Mat &sourceImage);
 void drawGraph(float objetos[][5]);
 void PrepareParking();
-void parkingLotSpace();
+void parkingLotSpace(Mat &theMask);
 void Enhancement(const Mat &sourceImage, Mat &destinationImage);
 void SobelFilter(const Mat &sourceImage, Mat &destinationImage);
+void camino(const Mat &sourceImage, Mat &destinationImage);
+void navegacion(Mat &destinationImage, Point inicio, Point final);
+
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -45,7 +49,7 @@ bool in = false;
                                         // La escala de los 3 histogramas
 int h_scale[3] = {0,0,0};
 Mat currentImageRGB, currentImageHSV, currentImageYIQ, displayedImage;
-Mat parkingLot,displayingParking;
+Mat parkingLot,displayingParking, caminosPRM;
 Mat kernel;
 
 bool congelado = false;
@@ -69,16 +73,24 @@ vector< vector<float> > momentosNormalizados;
 vector< float > fi1;
 vector< float > fi2;
 
-
 Mat grad_x, grad_y;
+
+vector< vector<short> > conexiones;
+vector<Point> estacas;
+int xEstacas;
+Point puntoFinal(63,50);
+bool update = true;
 
 /*< Main START >*/
 int main(int argc, char *argv[])
 {
+  int id1 = 1, id2 = 2;
   namedWindow("Image");
-  setMouseCallback("Image", mouseCoordinatesExampleCallback);
-  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  VideoCapture camera("Videotest");     //Comment for real camera usage
+  namedWindow("Parking");
+  setMouseCallback("Image", mouseCoordinatesExampleCallback, &id1);
+  setMouseCallback("Parking", mouseCoordinatesExampleCallback, &id2);
+  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  //VideoCapture camera("Videotest");     //Comment for real camera usage
 
   PrepareParking();
   bool isCameraAvailable = camera.isOpened();
@@ -106,7 +118,7 @@ int main(int argc, char *argv[])
       blackWhite();
       filterImage(mascara);
       segmentedImage = Mat( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
-      parkingLotSpace();
+      
       dilateImage(mascara, mascara);
       dilateImage(mascara, mascara);
       dilateImage(mascara, mascara);
@@ -115,6 +127,20 @@ int main(int argc, char *argv[])
       erodeImage(mascara,mascara);
       segmentacion(mascara, segmentedImage);
       detectObjects(segmentedImage);
+
+      if(update)
+      {
+        Mat parkingLotMask;
+        parkingLotSpace(parkingLotMask);
+
+        // Dibujar cuadrito blanco
+
+        caminosPRM = Mat( parkingLotMask.rows, parkingLotMask.cols, CV_8UC3, Scalar( 0) );
+        camino(parkingLotMask, caminosPRM);
+        navegacion(caminosPRM, Point(311, 38), puntoFinal);
+        update = false;
+      }
+      
     }
     else
     {
@@ -131,7 +157,8 @@ int main(int argc, char *argv[])
       displayedImage =currentImageRGB;
     }
     imshow("Image", displayedImage);
-    imshow("Parking", displayingParking);
+    imshow("ParkingFiltered", displayingParking);
+    imshow("CaminosPRM", caminosPRM);
 
     imshow("Image segmentada", segmentedImage);
 
@@ -225,7 +252,8 @@ void SobelFilter(const Mat &sourceImage, Mat &destinationImage){
 }
 
 void PrepareParking(){
- parkingLot = imread("Parking.jpeg", CV_LOAD_IMAGE_COLOR);
+ parkingLot = imread("Parking2.jpeg", CV_LOAD_IMAGE_COLOR);
+ imshow("Parking", parkingLot);
   displayingParking = parkingLot;
   SobelFilter(displayingParking,displayingParking);
   
@@ -235,9 +263,9 @@ void PrepareParking(){
 
 
 
-void parkingLotSpace(){
+void parkingLotSpace(Mat &theMask){
   int limit = 10;
-  if(modelo == 'B'){
+  //if(modelo == 'B'){
     Mat channels[3];
     Mat black_white( displayingParking.rows, displayingParking.cols, CV_8UC3, Scalar( 0) );
     Mat mask;
@@ -247,7 +275,7 @@ void parkingLotSpace(){
     inRange( black_white, Scalar(110),Scalar (256),mask);
     //filterImage(mask);
 
-    if(in == false){
+    /*if(in == false){
       medianBlur(mask, mask, 9);
       blur(mask, mask, Size(3, 3));
 
@@ -262,9 +290,10 @@ void parkingLotSpace(){
 
         
       in = true;
-    }
+    }*/
+  //}
     imshow("ParkingBinarizado", mask);
-  }
+    theMask = mask;
 }
 
 /*< Plot Histograms START >*/
@@ -775,23 +804,35 @@ void printPoint(char colormodel){
 /*< Mouse callback START >*/
 void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* param)
 {
+   int * windowID = (int*)param;
     switch (event)
     {
         case CV_EVENT_LBUTTONDOWN:
-            bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
-            bgr_point[1] = int(currentImageRGB.at<Vec3b>(y, x)[1]);
-            bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
+            
 
             cout << "  Mouse X, Y: " << x << ", " << y << endl;
-            printPoint('r');
-            clickRgbToHsv();
-            printPoint('h');
-            clickRgbToYiq();
-            printPoint('y');
+            if(*windowID==1)
+            {
+              bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
+              bgr_point[1] = int(currentImageRGB.at<Vec3b>(y, x)[1]);
+              bgr_point[2] = int(currentImageRGB.at<Vec3b>(y, x)[2]);
 
-	if(filtrar){
-	    getFilterRange();
-	}
+              printPoint('r');
+              clickRgbToHsv();
+              printPoint('h');
+              clickRgbToYiq();
+              printPoint('y');
+
+            	if(filtrar){
+            	    getFilterRange();
+            	}
+            }
+            else{
+              puntoFinal.x = x;
+              puntoFinal.y = y;
+              update = true;
+            }
+            
             break;
         case CV_EVENT_MOUSEMOVE:
             break;
@@ -1240,3 +1281,219 @@ int checkpoint(float h, float k, float x, float y, float a, float b, float angle
   
     return p; 
 } 
+
+
+
+bool checarCamino(Mat &sourceImage, Point inicio, Point final)
+{
+   if(inicio.x == final.x)
+   {
+      for(int i=inicio.y; i <final.y; i++)
+      {
+        if(sourceImage.at<Vec3b>( i , inicio.x) == Vec3b(255,255,255) )
+          return false;
+        //sourceImage.at<Vec3b>(i , inicio.x) = Vec3b(255, 255, 0);
+      }
+   }
+   else
+   {
+      float m = ((float)inicio.y - (float)final.y) / ((float)inicio.x - (float)final.x) ;
+      float b = (float)inicio.y - m* ((float)inicio.x);
+
+      for(int i=inicio.x; i <final.x; i++)
+      {
+        if(sourceImage.at<Vec3b>( round(i*m+b) , i) == Vec3b(255,255,255))
+          return false;
+
+        //sourceImage.at<Vec3b>( round(i*m+b) , i) = Vec3b(255, 255, 0);
+        int altura = round(i*m+b) + 1;
+
+        while(i<final.x && altura < round((i+1)*m+b))
+        {
+          //sourceImage.at<Vec3b>( altura , i) = Vec3b(255, 255, 0);
+          if(sourceImage.at<Vec3b>( altura , i) == Vec3b(255,255,255))
+            return false;
+          altura++;
+        }
+        
+        altura = round(i*m+b) - 1;
+
+        while(i<final.x && altura > round((i+1)*m+b))
+        {
+          //sourceImage.at<Vec3b>( altura , i) = Vec3b(255, 255, 0);
+          if(sourceImage.at<Vec3b>( altura , i) == Vec3b(255,255,255))
+            return false;
+          altura--;
+        }
+        
+      }
+   }
+
+   return true;
+}
+
+void camino(const Mat &sourceImage, Mat &destinationImage)
+{
+  //Pinta la imagen original en la de salida
+  for(int i=0; i<sourceImage.rows; i++)
+    for(int j=0; j<sourceImage.cols; j++)
+    {
+      if(sourceImage.at<unsigned char>(i,j) == 255)
+        destinationImage.at<Vec3b>( i , j ) = Vec3b(255,255,255);
+    }
+
+  if(conexiones.size() ==0)
+  {
+    int x = ceil( ((float)sourceImage.cols) / (espacio+1));
+    xEstacas = x;
+    int y = ceil( ((float)sourceImage.rows) / (espacio+1));
+    conexiones = vector<vector<short>>(x*y, vector<short>());
+
+    // Pinta las estacas
+    for(int i=0; i<sourceImage.rows; i+=espacio+1)
+      for(int j=0; j<sourceImage.cols; j+=espacio+1)
+      {
+        int tempi = i, tempj = j;
+
+        // Si la estaca esta sobre un objeto la mueve fuera
+        // de el
+        if(sourceImage.at<unsigned char>(tempi,tempj) == 255)
+        {
+          short extendX = 1, extendY = 1;
+          while(true)
+          {
+            if(tempi+extendY > 0 && tempi+extendY < sourceImage.rows &&
+              sourceImage.at<unsigned char>(tempi+extendY,tempj) != 255)
+            {
+              tempi+=extendY;
+              break;
+            }
+            if(tempj+extendX > 0 && tempj+extendX < sourceImage.cols &&
+              sourceImage.at<unsigned char>(tempi,tempj+extendX) != 255)
+            {
+              tempj+=extendX;
+              break;
+            }
+            extendX = extendX < 0 ? (-extendX)+1 : (-extendX);
+            extendY = extendY < 0 ? (-extendY)+1 : (-extendY);
+          }
+        }
+
+        //Se guardan las coordenadas de las estacas en el vector de estacas
+        estacas.push_back( Point(tempj,tempi) );
+
+        // Conexion con el pixel de la izquierda
+        if(tempj!=0 && estacas.size() > 1 && checarCamino(destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi))
+          && checarCamino(destinationImage, Point(tempj,tempi), estacas[ estacas.size()-2 ]))
+        {
+          //line( destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
+          conexiones[estacas.size()-1].push_back( estacas.size()-2 );
+          conexiones[estacas.size()-2].push_back( estacas.size()-1 );
+        }
+
+        // Conexion con el pixel de arriba
+        if(tempi!=0 && estacas.size() > x && checarCamino(destinationImage, estacas[ estacas.size()-1-x ], Point(tempj,tempi))
+          && checarCamino(destinationImage, Point(tempj,tempi), estacas[ estacas.size()-1-x ]))
+        {
+          //line( destinationImage, estacas[ estacas.size()-1 -x ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
+          conexiones[estacas.size()-1].push_back( estacas.size()-1 -x);
+          conexiones[estacas.size()-1 -x].push_back( estacas.size()-1 );
+        }
+        destinationImage.at<Vec3b>( tempi , tempj ) = Vec3b(0,0,255);
+      }
+  }
+}
+
+int minDistance(int dist[], bool sptSet[]) 
+{ 
+    // Initialize min value 
+    int V = conexiones.size();
+    int min = INT_MAX, min_index; 
+  
+    for (int v = 0; v < V; v++) 
+        if (sptSet[v] == false && dist[v] <= min) 
+            min = dist[v], min_index = v; 
+  
+    return min_index; 
+} 
+
+void printPath(Mat &destinationImage, int parent[], int j, int src) 
+{ 
+    while(parent[j] > -1)
+    {
+      if(parent[j] >= estacas.size())
+      {
+        cout << "Imposible realizar la conexion" << endl;
+        break;
+      }
+      line( destinationImage, estacas[j], estacas[parent[j]], Scalar(0, 0, 255), 1 ,8);
+      j = parent[j]; 
+    }
+    //line( destinationImage, estacas[j], estacas[src], Scalar(255, 255, 0), 1 ,8);
+} 
+
+void navegacion(Mat &destinationImage, Point inicio, Point final)
+{
+    int src= round( (float)inicio.x/((float)espacio+1)) + round((float)inicio.y/((float)espacio+1)) * xEstacas;
+    int fin= round( (float)final.x/((float)espacio+1)) + round((float)final.y/((float)espacio+1)) * xEstacas;
+    int V = conexiones.size();
+    int dist[V]; // The output array.  dist[i] will hold the shortest 
+    // distance from src to i 
+  
+    bool sptSet[V]; // sptSet[i] will be true if vertex i is included in shortest 
+    // path tree or shortest distance from src to i is finalized 
+
+    // Parent array to store 
+    // shortest path tree 
+    int parent[V]; 
+  
+    // Initialize all distances as INFINITE and stpSet[] as false 
+    for (int i = 0; i < V; i++) 
+    {
+        dist[i] = INT_MAX; 
+        sptSet[i] = false; 
+        parent[i] = -1; 
+    }
+  
+    // Distance of source vertex from itself is always 0 
+    dist[src] = 0; 
+    
+    // Find shortest path for all vertices 
+    for (int count = 0; count < V - 1; count++) { 
+        // Pick the minimum distance vertex from the set of vertices not 
+        // yet processed. u is always equal to src in the first iteration. 
+
+        int u = minDistance(dist, sptSet); 
+
+  
+        // Mark the picked vertex as processed 
+        sptSet[u] = true;
+  
+        // Update dist value of the adjacent vertices of the picked vertex. 
+        for (int v = 0; v < conexiones[u].size(); v++) 
+        {
+
+            // Update dist[v] only if is not in sptSet, there is an edge from 
+            // u to v, and total weight of path from src to  v through u is 
+            // smaller than current value of dist[v]
+            int index = conexiones[u][v];
+            if (!sptSet[index] && find(conexiones[u].begin(), conexiones[u].end() ,index) != conexiones[u].end()
+                && dist[u] != INT_MAX  && dist[u] + 1 < dist[index]) 
+            {
+                parent[index] = u;
+                dist[index] = dist[u] + 1; 
+            }
+
+        }
+
+    }
+  
+    parent[src] = -1;
+
+    line( destinationImage, estacas[fin], final, Scalar(0, 0, 255), 1 ,8);
+    printPath(destinationImage, parent, fin, src);
+    circle(destinationImage, estacas[src], 4, Scalar(0,255,0), -1, 8);
+    circle(destinationImage, final, 4, Scalar(255,0,255), -1, 8);
+    // print the constructed distance array 
+    //printSolution(dist);
+}
