@@ -78,7 +78,7 @@ Mat grad_x, grad_y;
 vector< vector<short> > conexiones;
 vector<Point> estacas;
 int xEstacas;
-Point puntoFinal(63,50);
+Point puntoFinal(276, 30);
 bool update = true;
 
 /*< Main START >*/
@@ -93,6 +93,9 @@ int main(int argc, char *argv[])
   //VideoCapture camera("Videotest");     //Comment for real camera usage
 
   PrepareParking();
+  Mat parkingLotMask;
+  parkingLotSpace(parkingLotMask);
+
   bool isCameraAvailable = camera.isOpened();
   camera.read(currentImageRGB);
   Mat mascara( currentImageRGB.rows, currentImageRGB.cols, CV_8UC3, Scalar( 0) );
@@ -130,14 +133,12 @@ int main(int argc, char *argv[])
 
       if(update)
       {
-        Mat parkingLotMask;
-        parkingLotSpace(parkingLotMask);
 
         // Dibujar cuadrito blanco
 
         caminosPRM = Mat( parkingLotMask.rows, parkingLotMask.cols, CV_8UC3, Scalar( 0) );
         camino(parkingLotMask, caminosPRM);
-        navegacion(caminosPRM, Point(311, 38), puntoFinal);
+        navegacion(caminosPRM, Point(276, 48), puntoFinal);
         update = false;
       }
       
@@ -251,12 +252,13 @@ void SobelFilter(const Mat &sourceImage, Mat &destinationImage){
         addWeighted( grad_x, 0.5, grad_y, 0.5, 0, destinationImage);
 }
 
+
+
 void PrepareParking(){
- parkingLot = imread("Parking2.jpeg", CV_LOAD_IMAGE_COLOR);
+ parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
  imshow("Parking", parkingLot);
   displayingParking = parkingLot;
   SobelFilter(displayingParking,displayingParking);
-  
   GaussianBlur(displayingParking, displayingParking, Size(3, 3) , 0);
 
 }
@@ -265,15 +267,31 @@ void PrepareParking(){
 
 void parkingLotSpace(Mat &theMask){
   int limit = 10;
+		int lowR = 25;
+		int hiR = 255;
+		int lowG = 25 ;
+		int hiG= 255;
+		int lowB =25;
+		int hiB= 255;
+		Mat mask;
+		Mat filter;
+	medianBlur(parkingLot, parkingLot,9);
+	inRange( parkingLot, Scalar(lowB, lowG, lowR),Scalar (hiB, hiG, hiR),mask);
+	kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
+	dilate(mask, mask, kernel);
+	kernel = getStructuringElement(MORPH_RECT, Size(15, 15));
+	erode(mask, mask,kernel);
+
+
   //if(modelo == 'B'){
-    Mat channels[3];
+   /*Mat channels[3];	
     Mat black_white( displayingParking.rows, displayingParking.cols, CV_8UC3, Scalar( 0) );
     Mat mask;
 
     split(parkingLot, channels);
     black_white = channels[0]*0.1 + channels[1]*0.3 + channels[2]*0.6;
     inRange( black_white, Scalar(110),Scalar (256),mask);
-    //filterImage(mask);
+    filterImage(mask);*/
 
     /*if(in == false){
       medianBlur(mask, mask, 9);
@@ -831,6 +849,9 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
               puntoFinal.x = x;
               puntoFinal.y = y;
               update = true;
+		cout<< int(parkingLot.at<Vec3b>(y, x)[0]) <<endl;
+		cout<< int(parkingLot.at<Vec3b>(y, x)[2]) <<endl;
+		cout<< int(parkingLot.at<Vec3b>(y, x)[3]) <<endl;
             }
             
             break;
