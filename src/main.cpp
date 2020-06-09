@@ -39,7 +39,7 @@ void Enhancement(const Mat &sourceImage, Mat &destinationImage);
 void SobelFilter(const Mat &sourceImage, Mat &destinationImage);
 void camino(const Mat &sourceImage, Mat &destinationImage);
 void navegacion(Mat &destinationImage, Point inicio, Point final);
-
+void printPath(Mat &destinationImage, int parent[], int j, int src, Point final);
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -1077,7 +1077,6 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
   }
 }
 
-
 void mira(int cuadrante, Mat &sourceImage)
 {
   rectangle(sourceImage, Point(520,20), Point(620, 120), Scalar(255,255,255), 1, 4);
@@ -1097,7 +1096,6 @@ void mira(int cuadrante, Mat &sourceImage)
         break;
   }
 }
-
 
 void detectObjects(Mat &sourceImage)
 {
@@ -1230,8 +1228,6 @@ void drawGraph(float objetos[][5]){
     } 
 	}
 
-  
-
 	//Pone los labels
 	Point textOrg(0, 30);
 	string text = to_string(y_bound);
@@ -1258,7 +1254,6 @@ void drawGraph(float objetos[][5]){
 	imshow("Graphs",graphs);
 }
 
-
 int checkpoint(float h, float k, float x, float y, float a, float b, float angle) 
 { 
   
@@ -1269,8 +1264,6 @@ int checkpoint(float h, float k, float x, float y, float a, float b, float angle
   
     return p; 
 } 
-
-
 
 bool checarCamino(Mat &sourceImage, Point inicio, Point final)
 {
@@ -1405,8 +1398,13 @@ int minDistance(int dist[], bool sptSet[])
     return min_index; 
 } 
 
-void printPath(Mat &destinationImage, int parent[], int j, int src) 
+void printPath(Mat &destinationImage, int parent[], int j, int src, Point final) 
 { 
+    circle(destinationImage, estacas[src], 4, Scalar(0,255,0), -1, 8);
+    circle(destinationImage, final, 4, Scalar(255,0,255), -1, 8);
+    line( destinationImage, estacas[j], final, Scalar(0, 0, 255), 1 ,8);
+    
+    //Hay que iterar parent en reversa
     while(parent[j] > -1)
     {
       if(parent[j] >= estacas.size())
@@ -1414,10 +1412,17 @@ void printPath(Mat &destinationImage, int parent[], int j, int src)
         cout << "Imposible realizar la conexion" << endl;
         break;
       }
-      line( destinationImage, estacas[j], estacas[parent[j]], Scalar(0, 0, 255), 1 ,8);
+      
+      LineIterator it(destinationImage,estacas[j],estacas[parent[j]], 8);
+      for(int i=0; i< it.count; i++, ++it){
+          line(destinationImage, estacas[j], it.pos(), Scalar(0, 0, 255), 1 ,8);
+          imshow("Parking", parkingLot);
+          waitKey(20);
+      }
+
       j = parent[j]; 
     }
-    //line( destinationImage, estacas[j], estacas[src], Scalar(255, 255, 0), 1 ,8);
+
 } 
 
 void navegacion(Mat &destinationImage, Point inicio, Point final)
@@ -1477,11 +1482,7 @@ void navegacion(Mat &destinationImage, Point inicio, Point final)
     }
   
     parent[src] = -1;
-
-    line( destinationImage, estacas[fin], final, Scalar(0, 0, 255), 1 ,8);
-    printPath(destinationImage, parent, fin, src);
-    circle(destinationImage, estacas[src], 4, Scalar(0,255,0), -1, 8);
-    circle(destinationImage, final, 4, Scalar(255,0,255), -1, 8);
+    printPath(destinationImage, parent, fin, src, final);
     // print the constructed distance array 
     //printSolution(dist);
 }
