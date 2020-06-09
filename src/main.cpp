@@ -6,7 +6,7 @@
 #include <math.h>
 
 #define PI 3.14159265
-#define espacio 5
+#define espacio 15
 // http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
@@ -136,9 +136,14 @@ int main(int argc, char *argv[])
 
         // Dibujar cuadrito blanco
 
-        caminosPRM = Mat( parkingLotMask.rows, parkingLotMask.cols, CV_8UC3, Scalar( 0) );
-        camino(parkingLotMask, caminosPRM);
-        navegacion(caminosPRM, Point(276, 48), puntoFinal);
+
+        if(parkingLotMask.at<unsigned char>(puntoFinal) != 255)
+        {
+          caminosPRM = Mat( parkingLotMask.rows, parkingLotMask.cols, CV_8UC3, Scalar( 0) );
+          camino(parkingLotMask, caminosPRM);
+          parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
+          navegacion(parkingLot, Point(276, 48), puntoFinal);
+        }
         update = false;
       }
       
@@ -158,7 +163,7 @@ int main(int argc, char *argv[])
       displayedImage =currentImageRGB;
     }
     imshow("Image", displayedImage);
-    imshow("ParkingFiltered", displayingParking);
+    imshow("Parking", parkingLot);
     imshow("CaminosPRM", caminosPRM);
 
     imshow("Image segmentada", segmentedImage);
@@ -255,9 +260,9 @@ void SobelFilter(const Mat &sourceImage, Mat &destinationImage){
 
 
 void PrepareParking(){
- parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
- imshow("Parking", parkingLot);
-  displayingParking = parkingLot;
+  parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
+  displayingParking = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
+  imshow("Parking", parkingLot);
   SobelFilter(displayingParking,displayingParking);
   GaussianBlur(displayingParking, displayingParking, Size(3, 3) , 0);
 
@@ -275,13 +280,16 @@ void parkingLotSpace(Mat &theMask){
 		int hiB= 255;
 		Mat mask;
 		Mat filter;
-	medianBlur(parkingLot, parkingLot,9);
-	inRange( parkingLot, Scalar(lowB, lowG, lowR),Scalar (hiB, hiG, hiR),mask);
+	medianBlur(displayingParking,displayingParking,9);
+	inRange( displayingParking, Scalar(lowB, lowG, lowR),Scalar (hiB, hiG, hiR),mask);
 	kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
 	dilate(mask, mask, kernel);
 	kernel = getStructuringElement(MORPH_RECT, Size(15, 15));
 	erode(mask, mask,kernel);
-
+  
+  dilateImage(mask, mask);
+  dilateImage(mask, mask);
+//  dilateImage(mask, mask); //dilatarlo mas causa un error.
 
   //if(modelo == 'B'){
    /*Mat channels[3];	
@@ -849,9 +857,6 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
               puntoFinal.x = x;
               puntoFinal.y = y;
               update = true;
-		cout<< int(parkingLot.at<Vec3b>(y, x)[0]) <<endl;
-		cout<< int(parkingLot.at<Vec3b>(y, x)[2]) <<endl;
-		cout<< int(parkingLot.at<Vec3b>(y, x)[3]) <<endl;
             }
             
             break;
@@ -1404,10 +1409,10 @@ void camino(const Mat &sourceImage, Mat &destinationImage)
         estacas.push_back( Point(tempj,tempi) );
 
         // Conexion con el pixel de la izquierda
-        if(tempj!=0 && estacas.size() > 1 && checarCamino(destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi))
+        if(estacas.size()%x != 1 && estacas.size() > 1 && checarCamino(destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi))
           && checarCamino(destinationImage, Point(tempj,tempi), estacas[ estacas.size()-2 ]))
         {
-          //line( destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
+          line( destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
           conexiones[estacas.size()-1].push_back( estacas.size()-2 );
           conexiones[estacas.size()-2].push_back( estacas.size()-1 );
         }
@@ -1416,7 +1421,7 @@ void camino(const Mat &sourceImage, Mat &destinationImage)
         if(tempi!=0 && estacas.size() > x && checarCamino(destinationImage, estacas[ estacas.size()-1-x ], Point(tempj,tempi))
           && checarCamino(destinationImage, Point(tempj,tempi), estacas[ estacas.size()-1-x ]))
         {
-          //line( destinationImage, estacas[ estacas.size()-1 -x ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
+          line( destinationImage, estacas[ estacas.size()-1 -x ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
           conexiones[estacas.size()-1].push_back( estacas.size()-1 -x);
           conexiones[estacas.size()-1 -x].push_back( estacas.size()-1 );
         }
