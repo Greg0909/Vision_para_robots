@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
   namedWindow("Parking");
   setMouseCallback("Image", mouseCoordinatesExampleCallback, &id1);
   setMouseCallback("Parking", mouseCoordinatesExampleCallback, &id2);
-  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  //VideoCapture camera("Videotest");     //Comment for real camera usage
+  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  VideoCapture camera("Videotest");     //Comment for real camera usage
 
   PrepareParking();
   Mat parkingLotMask;
@@ -287,8 +287,16 @@ void parkingLotSpace(Mat &theMask){
 	kernel = getStructuringElement(MORPH_RECT, Size(15, 15));
 	erode(mask, mask,kernel);
   
-  dilateImage(mask, mask);
-  dilateImage(mask, mask);
+  kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
+	dilate(mask, mask, kernel);
+	dilate(mask, mask, kernel);
+
+
+  kernel = getStructuringElement(MORPH_RECT, Size(1, 1));
+	dilate(mask, mask, kernel);
+  	medianBlur(mask,mask,9);
+      blur(mask, mask, Size(3, 3));
+
 //  dilateImage(mask, mask); //dilatarlo mas causa un error.
 
   //if(modelo == 'B'){
