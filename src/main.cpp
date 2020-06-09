@@ -257,8 +257,6 @@ void SobelFilter(const Mat &sourceImage, Mat &destinationImage){
         addWeighted( grad_x, 0.5, grad_y, 0.5, 0, destinationImage);
 }
 
-
-
 void PrepareParking(){
   parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
   displayingParking = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
@@ -267,8 +265,6 @@ void PrepareParking(){
   GaussianBlur(displayingParking, displayingParking, Size(3, 3) , 0);
 
 }
-
-
 
 void parkingLotSpace(Mat &theMask){
   int limit = 10;
@@ -294,39 +290,9 @@ void parkingLotSpace(Mat &theMask){
 
   kernel = getStructuringElement(MORPH_RECT, Size(1, 1));
 	dilate(mask, mask, kernel);
-  	medianBlur(mask,mask,9);
-      blur(mask, mask, Size(3, 3));
-
-//  dilateImage(mask, mask); //dilatarlo mas causa un error.
-
-  //if(modelo == 'B'){
-   /*Mat channels[3];	
-    Mat black_white( displayingParking.rows, displayingParking.cols, CV_8UC3, Scalar( 0) );
-    Mat mask;
-
-    split(parkingLot, channels);
-    black_white = channels[0]*0.1 + channels[1]*0.3 + channels[2]*0.6;
-    inRange( black_white, Scalar(110),Scalar (256),mask);
-    filterImage(mask);*/
-
-    /*if(in == false){
-      medianBlur(mask, mask, 9);
-      blur(mask, mask, Size(3, 3));
-
-      kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
-      erodeImage(mask, mask);
-      medianBlur(mask, mask, 9);
-
-      dilate(mask, mask, kernel);
-            kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
-
-      morphologyEx(mask, mask, MORPH_CLOSE, kernel);
-
-        
-      in = true;
-    }*/
-  //}
-    imshow("ParkingBinarizado", mask);
+  medianBlur(mask,mask,9);
+  blur(mask, mask, Size(3, 3));
+  imshow("ParkingBinarizado", mask);
     theMask = mask;
 }
 
@@ -875,18 +841,6 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
     }
 }
 /*< Mouse callback END >*/
-
-
-
-
-
-
-
-
-
-
-
-
 
 Point get_seed(const Mat &sourceImage)
 {
