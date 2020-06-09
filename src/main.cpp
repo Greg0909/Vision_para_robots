@@ -8,7 +8,7 @@
 
 #define PI 3.14159265
 #define espacio 15
-#define radio 5
+#define radio 4
 // http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
@@ -91,8 +91,8 @@ int main(int argc, char *argv[])
   namedWindow("Parking");
   setMouseCallback("Image", mouseCoordinatesExampleCallback, &id1);
   setMouseCallback("Parking", mouseCoordinatesExampleCallback, &id2);
-  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  //VideoCapture camera("Videotest");     //Comment for real camera usage
+  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  VideoCapture camera("Videotest");     //Comment for real camera usage
 
   PrepareParking();
   Mat parkingLotMask;
@@ -282,18 +282,22 @@ void parkingLotSpace(Mat &theMask){
 	inRange( displayingParking, Scalar(lowB, lowG, lowR),Scalar (hiB, hiG, hiR),mask);
 	kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
 	dilate(mask, mask, kernel);
-	kernel = getStructuringElement(MORPH_RECT, Size(15, 15));
+	kernel = getStructuringElement(MORPH_ELLIPSE, Size(15, 15));
 	erode(mask, mask,kernel);
   
-  kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
+  kernel = getStructuringElement(MORPH_ELLIPSE, Size(3, 3));
 	dilate(mask, mask, kernel);
 	dilate(mask, mask, kernel);
 
 
-  kernel = getStructuringElement(MORPH_RECT, Size(1, 1));
+  kernel = getStructuringElement(MORPH_ELLIPSE, Size(1, 1));
 	dilate(mask, mask, kernel);
   medianBlur(mask,mask,9);
-  blur(mask, mask, Size(3, 3));
+  medianBlur(mask,mask,1);
+
+	erode(mask, mask,kernel);
+	dilate(mask, mask, kernel);
+
   imshow("ParkingBinarizado", mask);
     theMask = mask;
 }
