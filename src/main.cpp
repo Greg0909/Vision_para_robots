@@ -3,10 +3,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <queue>
+#include <stack>
 #include <math.h>
 
 #define PI 3.14159265
 #define espacio 15
+#define radio 5
 // http://www.pict uretopeople.org/color_converter.html
 
 using namespace std;
@@ -89,8 +91,8 @@ int main(int argc, char *argv[])
   namedWindow("Parking");
   setMouseCallback("Image", mouseCoordinatesExampleCallback, &id1);
   setMouseCallback("Parking", mouseCoordinatesExampleCallback, &id2);
-  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  VideoCapture camera("Videotest");     //Comment for real camera usage
+  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  //VideoCapture camera("Videotest");     //Comment for real camera usage
 
   PrepareParking();
   Mat parkingLotMask;
@@ -1400,11 +1402,8 @@ int minDistance(int dist[], bool sptSet[])
 
 void printPath(Mat &destinationImage, int parent[], int j, int src, Point final) 
 { 
-    circle(destinationImage, estacas[src], 4, Scalar(0,255,0), -1, 8);
-    circle(destinationImage, final, 4, Scalar(255,0,255), -1, 8);
-    line( destinationImage, estacas[j], final, Scalar(0, 0, 255), 1 ,8);
-    
-    //Hay que iterar parent en reversa
+    circle(destinationImage, estacas[src], radio, Scalar(0,255,0), -1, 8);
+    stack<Point> path;
     while(parent[j] > -1)
     {
       if(parent[j] >= estacas.size())
@@ -1412,16 +1411,33 @@ void printPath(Mat &destinationImage, int parent[], int j, int src, Point final)
         cout << "Imposible realizar la conexion" << endl;
         break;
       }
-      
-      LineIterator it(destinationImage,estacas[j],estacas[parent[j]], 8);
-      for(int i=0; i< it.count; i++, ++it){
-          line(destinationImage, estacas[j], it.pos(), Scalar(0, 0, 255), 1 ,8);
-          imshow("Parking", parkingLot);
-          waitKey(20);
-      }
-
+      path.push(estacas[j]);
       j = parent[j]; 
     }
+    path.push(estacas[j]);
+
+    Point last , current ;
+    if(path.size() > 0)
+    {
+      last = path.top();
+      path.pop();
+    }
+    //Hay que iterar parent en reversa
+    while(path.size() > 0)
+    {
+      current = path.top();
+      path.pop();
+      
+          line(destinationImage, current, last, Scalar(0, 0, 255), 1 ,8);
+          circle(destinationImage, current, radio, Scalar(255,0,255), -1, 8);
+          imshow("Parking", parkingLot);
+          waitKey(50);
+
+      last = current;
+    }
+
+    circle(destinationImage, final, radio, Scalar(255,0,255), -1, 8);
+    line( destinationImage, last, final, Scalar(0, 0, 255), 1 ,8);
 
 } 
 
