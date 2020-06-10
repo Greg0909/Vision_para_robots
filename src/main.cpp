@@ -264,8 +264,9 @@ void PrepareParking(){
   displayingParking = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
   imshow("Parking", parkingLot);
   SobelFilter(displayingParking,displayingParking);
+  //imshow("Sobel", displayingParking);
   GaussianBlur(displayingParking, displayingParking, Size(3, 3) , 0);
-
+  //imshow("Gaussian", displayingParking);
 }
 
 void parkingLotSpace(Mat &theMask){
@@ -279,12 +280,19 @@ void parkingLotSpace(Mat &theMask){
 		Mat mask;
 		Mat filter;
 	medianBlur(displayingParking,displayingParking,9);
+  //imshow("Median Blur 1", displayingParking);
+
 	inRange( displayingParking, Scalar(lowB, lowG, lowR),Scalar (hiB, hiG, hiR),mask);
+  //imshow("inRange", mask);
+
 	kernel = getStructuringElement(MORPH_RECT, Size(5, 5));
 	dilate(mask, mask, kernel);
+  //imshow("Dilate 1", mask);
+
 	kernel = getStructuringElement(MORPH_RECT, Size(15, 15));
 	erode(mask, mask,kernel);
-  
+  //imshow("Erode 1", mask);
+
   kernel = getStructuringElement(MORPH_RECT, Size(3, 3));
 	dilate(mask, mask, kernel);
 	dilate(mask, mask, kernel);
@@ -292,9 +300,14 @@ void parkingLotSpace(Mat &theMask){
 
   kernel = getStructuringElement(MORPH_RECT, Size(1, 1));
 	dilate(mask, mask, kernel);
+  //imshow("Dilate 2", mask);
+
+
   medianBlur(mask,mask,9);
+  //imshow("Median Blur 2", mask);
+
   blur(mask, mask, Size(3, 3));
-  imshow("ParkingBinarizado", mask);
+  //imshow("blur", mask);
     theMask = mask;
 }
 
@@ -890,7 +903,7 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
   int color = 0, intentos = 0;
   
 
-  while(intentos <200)
+  while(intentos <500)
   {
     vector<float> momentosOrdinariosTemp(6,0); 
     Point pixel = get_seed(sourceImage);
@@ -1105,8 +1118,8 @@ void detectObjects(Mat &sourceImage)
   //Dona
   objetos[0][0] = 0.242956361111111; // ph 1
   objetos[0][1] = 0.000584436166667; // ph 2
-  objetos[0][2] = 0.0207349943413; // range 1
-  objetos[0][3] = 0.000481942; // range 2
+  objetos[0][2] = 0.0407349943413; // range 1
+  objetos[0][3] = 0.001081942; // range 2
   objetos[0][4] = 0; // angulo
 
   //Manzana
@@ -1120,15 +1133,15 @@ void detectObjects(Mat &sourceImage)
   objetos[2][0] = 0.253294305882353; // ph 1
   objetos[2][1] = 0.034330392352941; // ph 2
   objetos[2][2] = 0.010013904277617; // range 1
-  objetos[2][3] = 0.005464262987825; // range 2
-  objetos[2][4] = 0; // angulo
+  objetos[2][3] = 0.009464262987825; // range 2
+  objetos[2][4] = -80; // angulo
 
 
   //Cuchillo
   objetos[3][0] = 0.84343 -0.05857; // ph 1
   objetos[3][1] = 0.6828 - 0.1015; // ph 2
   objetos[3][2] = 0.2; // range 1
-  objetos[3][3] = 0.03; // range 2
+  objetos[3][3] = 0.1; // range 2
   objetos[3][4] = -60; // angulo
 
 
@@ -1206,7 +1219,7 @@ void drawGraph(float objetos[][5]){
 	int fontFace = FONT_HERSHEY_SCRIPT_SIMPLEX;
 	double fontScale = 0.5;
 	int thickness = 1;	
-	Mat graphs = Mat( graph_h+30,graph_w+30, CV_8UC3, Scalar( 0,0,0) );
+	Mat graphs = Mat( graph_h+30,graph_w+30, CV_8UC3, Scalar( 255,255,255) );
 
 	//obtenido manualmente. Cambiar el # de objeto si es necesario
 	float x_bound = objetos[3][0]+objetos[3][2]*2;   //el maximo valor de x + 2*desv estandar
@@ -1226,32 +1239,32 @@ void drawGraph(float objetos[][5]){
       int x_p = fi1[h]*graph_w/(x_bound);
       int y_p = graph_h-fi2[h]*graph_h/(y_bound);
       if (x_p > 0 && x_p<graph_w && y_p > 0 && y_p < graph_h)
-      circle(graphs, Point(x_p,y_p), 3, Scalar::all(255), CV_FILLED,8);
+      circle(graphs, Point(x_p,y_p), 3, Scalar::all(0), CV_FILLED,8);
     } 
 	}
 
 	//Pone los labels
 	Point textOrg(0, 30);
 	string text = to_string(y_bound);
-	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 	textOrg.y = graph_h/2;
 	text = to_string(y_bound/2);
-	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 
 	textOrg.x =0;
 	textOrg.y=graph_h+25;
 	text = to_string(0);
-	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 	textOrg.x = graph_w/2;
 	text = to_string(x_bound/2);
-	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 	textOrg.x = graph_w-20;
 	text = to_string(x_bound);
-	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+	putText(graphs, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 
 	//dibuja los ejes
-	line(graphs, Point(20, graph_h), Point(20,0),Scalar (255,255,255), 1,8);
-	line(graphs, Point(20, graph_h), Point(graph_w, graph_h), Scalar(255,255,255), 1,8);
+	line(graphs, Point(20, graph_h), Point(20,0),Scalar (0,0,0), 1,8);
+	line(graphs, Point(20, graph_h), Point(graph_w, graph_h), Scalar(0,0,0), 1,8);
 
 	imshow("Graphs",graphs);
 }
@@ -1369,7 +1382,7 @@ void camino(const Mat &sourceImage, Mat &destinationImage)
         if(estacas.size()%x != 1 && estacas.size() > 1 && checarCamino(destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi))
           && checarCamino(destinationImage, Point(tempj,tempi), estacas[ estacas.size()-2 ]))
         {
-          line( destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
+          //line( destinationImage, estacas[ estacas.size()-2 ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
           conexiones[estacas.size()-1].push_back( estacas.size()-2 );
           conexiones[estacas.size()-2].push_back( estacas.size()-1 );
         }
@@ -1378,7 +1391,7 @@ void camino(const Mat &sourceImage, Mat &destinationImage)
         if(tempi!=0 && estacas.size() > x && checarCamino(destinationImage, estacas[ estacas.size()-1-x ], Point(tempj,tempi))
           && checarCamino(destinationImage, Point(tempj,tempi), estacas[ estacas.size()-1-x ]))
         {
-          line( destinationImage, estacas[ estacas.size()-1 -x ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
+          //line( destinationImage, estacas[ estacas.size()-1 -x ], Point(tempj,tempi), Scalar(255, 255, 0), 1 ,8);
           conexiones[estacas.size()-1].push_back( estacas.size()-1 -x);
           conexiones[estacas.size()-1 -x].push_back( estacas.size()-1 );
         }
