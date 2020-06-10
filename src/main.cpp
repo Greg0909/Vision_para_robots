@@ -80,7 +80,7 @@ Mat grad_x, grad_y;
 vector< vector<short> > conexiones;
 vector<Point> estacas;
 int xEstacas;
-Point puntoFinal(276, 30);
+Point puntoFinal(-1, -1), puntoInicial(-1,-1);
 bool update = true;
 
 /*< Main START >*/
@@ -91,8 +91,8 @@ int main(int argc, char *argv[])
   namedWindow("Parking");
   setMouseCallback("Image", mouseCoordinatesExampleCallback, &id1);
   setMouseCallback("Parking", mouseCoordinatesExampleCallback, &id2);
-  //VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
-  VideoCapture camera("Videotest");     //Comment for real camera usage
+  VideoCapture camera = VideoCapture(0); //Uncomment for real camera usage
+  //VideoCapture camera("Videotest");     //Comment for real camera usage
 
   PrepareParking();
   Mat parkingLotMask;
@@ -138,13 +138,15 @@ int main(int argc, char *argv[])
 
         // Dibujar cuadrito blanco
 
-
-        if(parkingLotMask.at<unsigned char>(puntoFinal) != 255)
+        cout << "UPADTEEE" << endl;
+        cout << "punto Final" << puntoFinal.x << " " << puntoFinal.y << endl;
+        cout << "punto Inicial" << puntoInicial.x << " " << puntoInicial.y << endl;
+        if(puntoInicial.x != -1 && puntoFinal.x != -1 && parkingLotMask.at<unsigned char>(puntoFinal) != 255)
         {
           caminosPRM = Mat( parkingLotMask.rows, parkingLotMask.cols, CV_8UC3, Scalar( 0) );
           camino(parkingLotMask, caminosPRM);
           parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
-          navegacion(parkingLot, Point(276, 48), puntoFinal);
+          navegacion(parkingLot, puntoInicial, puntoFinal);
         }
         update = false;
       }
@@ -166,7 +168,7 @@ int main(int argc, char *argv[])
     }
     imshow("Image", displayedImage);
     imshow("Parking", parkingLot);
-    imshow("CaminosPRM", caminosPRM);
+    //imshow("CaminosPRM", caminosPRM);
 
     imshow("Image segmentada", segmentedImage);
 
@@ -831,6 +833,7 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             
 
             cout << "  Mouse X, Y: " << x << ", " << y << endl;
+            cout << " el id es " << *windowID << endl;
             if(*windowID==1)
             {
               bgr_point[0] = int(currentImageRGB.at<Vec3b>(y, x)[0]);
@@ -848,8 +851,7 @@ void mouseCoordinatesExampleCallback(int event, int x, int y, int flags, void* p
             	}
             }
             else{
-              puntoFinal.x = x;
-              puntoFinal.y = y;
+              puntoFinal = Point(x,y);
               update = true;
             }
             
@@ -1081,7 +1083,7 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
     if(fi2[i] > 0.005)
     {
       float angle = 0.5 * atan2(2*momentosCentralizados[i][2], momentosCentralizados[i][0] - momentosCentralizados[i][1]);
-      cout<<"\t\t\t\t\t" << angle << endl;
+      //cout<<"\t\t\t\t\t" << angle << endl;
       int x  = cos( PI/180* 90 * (-angle)/1.57 ) * 40 ;
       int y  = sin( PI/180* 90 * (-angle)/1.57 ) * 40;
 
@@ -1093,28 +1095,49 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
           << "\tfi1: " << fi1[i]
           << "\tfi2: " << fi2[i] << endl;*/
 
-    cout << fi1[i] << "\t" << fi2[i] << endl;
+    //cout << fi1[i] << "\t" << fi2[i] << endl;
   }
 }
+
+int lastCuadrante = -1;
 
 void mira(int cuadrante, Mat &sourceImage)
 {
   rectangle(sourceImage, Point(520,20), Point(620, 120), Scalar(255,255,255), 1, 4);
+
   switch(cuadrante)
   {
     case 1:
         rectangle(sourceImage, Point(522,22), Point(568, 68), Scalar(0,0,255), -1, 4);
+        puntoInicial = Point(46,39);
+        update = lastCuadrante != cuadrante | update;
+        circle(parkingLot, puntoInicial, radio, Scalar(0,255,0), -1, 8);
         break;
     case 2:
         rectangle(sourceImage, Point(572,22), Point(618, 68), Scalar(255,0,0), -1, 4);
+        puntoInicial = Point(276,48);
+        update = lastCuadrante != cuadrante | update;
+        circle(parkingLot, puntoInicial, radio, Scalar(0,255,0), -1, 8);
         break;
     case 3:
         rectangle(sourceImage, Point(522,72), Point(568, 118), Scalar(0,255,255), -1, 4);
+        puntoInicial = Point(48,241);
+        update = lastCuadrante != cuadrante | update;
+        circle(parkingLot, puntoInicial, radio, Scalar(0,255,0), -1, 8);
         break;
     case 4:
         rectangle(sourceImage, Point(572,72), Point(618, 118), Scalar(255,0,255), -1, 4);
+        puntoInicial = Point(289,239);
+        update = lastCuadrante != cuadrante | update;
+        circle(parkingLot, puntoInicial, radio, Scalar(0,255,0), -1, 8);
+        break;
+    case 0:
+        parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
+        puntoInicial = Point(-1,-1);
+        puntoFinal = Point(-1,-1);
         break;
   }
+  lastCuadrante = cuadrante;
 }
 
 void detectObjects(Mat &sourceImage)
@@ -1145,7 +1168,7 @@ void detectObjects(Mat &sourceImage)
   //Cuchillo
   objetos[3][0] = 0.84343 -0.05857; // ph 1
   objetos[3][1] = 0.6828 - 0.1015; // ph 2
-  objetos[3][2] = 0.2; // range 1
+  objetos[3][2] = 0.6; // range 1
   objetos[3][3] = 0.1; // range 2
   objetos[3][4] = -60; // angulo
 
@@ -1177,28 +1200,28 @@ void detectObjects(Mat &sourceImage)
     //Dona (redondo)
     if(checkpoint(objetos[0][0], objetos[0][1], fi1[i], fi2[i], objetos[0][2], objetos[0][3], objetos[0][4]) <= 1 && objetoCercano[0])
     {
-      cout << "DONAA" << endl;
+      //cout << "DONAA" << endl;
       dona = true;
     }
 
     //Manzana (redondo)
     if(checkpoint(objetos[1][0], objetos[1][1], fi1[i], fi2[i], objetos[1][2], objetos[1][3], objetos[1][4]) <= 1 && objetoCercano[1])
     {
-      cout << "Manzana" << endl;
+      //cout << "Manzana" << endl;
       manzana = true;
     }
 
     //Vaso (Alargado)
     if(checkpoint(objetos[2][0], objetos[2][1], fi1[i], fi2[i], objetos[2][2], objetos[2][3], objetos[2][4]) <= 1 && objetoCercano[2])
     {
-      cout << "Vaso" << endl;
+      //cout << "Vaso" << endl;
       vaso = true;
     }
 
     //Cuchillo (Alargado)
     if(checkpoint(objetos[3][0], objetos[3][1], fi1[i], fi2[i], objetos[3][2], objetos[3][3], objetos[3][4]) <= 1 && objetoCercano[3])
     {
-      cout << "Cuchillo" << endl;
+      //cout << "Cuchillo" << endl;
       cuchuillo = true;
     }
   }
@@ -1420,7 +1443,7 @@ int minDistance(int dist[], bool sptSet[])
 
 void printPath(Mat &destinationImage, int parent[], int j, int src, Point final) 
 { 
-    circle(destinationImage, estacas[src], radio, Scalar(0,255,0), -1, 8);
+    //circle(destinationImage, estacas[src], radio, Scalar(0,255,0), -1, 8);
     stack<Point> path;
     while(parent[j] > -1)
     {
@@ -1516,6 +1539,7 @@ void navegacion(Mat &destinationImage, Point inicio, Point final)
     }
   
     parent[src] = -1;
+    circle(destinationImage, inicio, radio, Scalar(0,255,0), -1, 8);
     printPath(destinationImage, parent, fin, src, final);
     // print the constructed distance array 
     //printSolution(dist);
