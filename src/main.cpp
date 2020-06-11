@@ -42,6 +42,8 @@ void SobelFilter(const Mat &sourceImage, Mat &destinationImage);
 void camino(const Mat &sourceImage, Mat &destinationImage);
 void navegacion(Mat &destinationImage, Point inicio, Point final);
 void printPath(Mat &destinationImage, int parent[], int j, int src, Point final);
+void drawObstacle(Mat &destinationImage);
+
                                         // VARIABLES GLOBALES
                                         // Contador para refreshear la escala de los 3 histogramas
 int counter_hist[3] = {0,0,0};
@@ -74,6 +76,9 @@ vector< vector<float> > momentosCentralizados;
 vector< vector<float> > momentosNormalizados;
 vector< float > fi1;
 vector< float > fi2;
+int xAngulo=-10000, yAngulo;
+int lastCuadrante = -1;
+
 
 Mat grad_x, grad_y;
 
@@ -135,12 +140,11 @@ int main(int argc, char *argv[])
 
       if(update)
       {
-
-        // Dibujar cuadrito blanco
-
-        cout << "UPADTEEE" << endl;
-        cout << "punto Final" << puntoFinal.x << " " << puntoFinal.y << endl;
-        cout << "punto Inicial" << puntoInicial.x << " " << puntoInicial.y << endl;
+        Mat temp;
+        parkingLotMask.copyTo(temp);
+        // Dibujar la linea blanca en la mascara
+        drawObstacle(parkingLotMask);
+        imshow("MaskParking", parkingLotMask);
         if(puntoInicial.x != -1 && puntoFinal.x != -1 && parkingLotMask.at<unsigned char>(puntoFinal) != 255)
         {
           caminosPRM = Mat( parkingLotMask.rows, parkingLotMask.cols, CV_8UC3, Scalar( 0) );
@@ -148,6 +152,7 @@ int main(int argc, char *argv[])
           parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
           navegacion(parkingLot, puntoInicial, puntoFinal);
         }
+        temp.copyTo(parkingLotMask);
         update = false;
       }
       
@@ -1027,6 +1032,8 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
   cout << "OpenCv " << huMoments[0] << " " << huMoments[1] << endl;
   }*/
 
+  bool resetAngle = false;
+
   //cout << "Se encontraron " << color << " objetos"<< endl;
   for(int i = 0; i<momentosOrdinarios.size(); i++)
   {
@@ -1080,7 +1087,7 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
     fi2.push_back( (momentosNormalizados[i][0] - momentosNormalizados[i][1]) * (momentosNormalizados[i][0] - momentosNormalizados[i][1]) 
       + 4*(momentosNormalizados[i][2]) * (momentosNormalizados[i][2]) );
 
-    if(fi2[i] > 0.005)
+    if(fi2[i] > 0.005 )
     {
       float angle = 0.5 * atan2(2*momentosCentralizados[i][2], momentosCentralizados[i][0] - momentosCentralizados[i][1]);
       //cout<<"\t\t\t\t\t" << angle << endl;
@@ -1089,7 +1096,14 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
 
       line(destinationImage, Point(promedioX-x, promedioY + y), 
             Point( promedioX+x, promedioY-y), Scalar(255,10,255), 1.4, 8 );
+      if( (yAngulo <= 0 && y >=0) || (yAngulo >= 0 && y <= 0) )
+        update = true;
+      xAngulo = x;
+      yAngulo = y;
     }
+    else
+      {if( resetAngle ) xAngulo=-10000;
+        resetAngle = true;}
 
     /*cout << "Objeto " << i
           << "\tfi1: " << fi1[i]
@@ -1099,7 +1113,6 @@ void segmentacion(const Mat &sourceImage, Mat &destinationImage)
   }
 }
 
-int lastCuadrante = -1;
 
 void mira(int cuadrante, Mat &sourceImage)
 {
@@ -1134,9 +1147,13 @@ void mira(int cuadrante, Mat &sourceImage)
     case 0:
         parkingLot = imread("Parking4.jpeg", CV_LOAD_IMAGE_COLOR);
         puntoInicial = Point(-1,-1);
-        puntoFinal = Point(-1,-1);
+        //puntoFinal = Point(-1,-1);
         break;
   }
+  if(xAngulo!=-10000)
+    line(sourceImage, Point(570-xAngulo, 70 + yAngulo), 
+              Point( 570+xAngulo, 70-yAngulo), Scalar(255,10,255), 1.4, 8 );
+
   lastCuadrante = cuadrante;
 }
 
@@ -1366,19 +1383,28 @@ void camino(const Mat &sourceImage, Mat &destinationImage)
         destinationImage.at<Vec3b>( i , j ) = Vec3b(255,255,255);
     }
 
-  if(conexiones.size() ==0)
-  {
+    
+
+  //if(conexiones.size() ==0)
+  //{
     int x = ceil( ((float)sourceImage.cols) / (espacio+1));
     xEstacas = x;
     int y = ceil( ((float)sourceImage.rows) / (espacio+1));
+
+    if(conexiones.size() > 0)
+    {
+        conexiones.clear();
+        estacas.clear();
+    }
+    
     conexiones = vector<vector<short>>(x*y, vector<short>());
+
 
     // Pinta las estacas
     for(int i=0; i<sourceImage.rows; i+=espacio+1)
       for(int j=0; j<sourceImage.cols; j+=espacio+1)
       {
         int tempi = i, tempj = j;
-
         // Si la estaca esta sobre un objeto la mueve fuera
         // de el
         if(sourceImage.at<unsigned char>(tempi,tempj) == 255)
@@ -1425,7 +1451,7 @@ void camino(const Mat &sourceImage, Mat &destinationImage)
         }
         destinationImage.at<Vec3b>( tempi , tempj ) = Vec3b(0,0,255);
       }
-  }
+  //}
 }
 
 int minDistance(int dist[], bool sptSet[]) 
@@ -1543,4 +1569,43 @@ void navegacion(Mat &destinationImage, Point inicio, Point final)
     printPath(destinationImage, parent, fin, src, final);
     // print the constructed distance array 
     //printSolution(dist);
+}
+
+void drawObstacle(Mat &destinationImage)
+{
+  if( xAngulo != -10000 && puntoInicial.x!=-1)
+  {
+    if(puntoInicial.x <150 && puntoInicial.y < 150 )
+    {
+      if(yAngulo < 0)
+        line(destinationImage, Point(15,60), Point(63, 60), Scalar(255), 4, 8 );
+      else
+        line(destinationImage, Point(63,11), Point(63, 60), Scalar(255), 4, 8 );
+    }
+
+    if(puntoInicial.x >=150 && puntoInicial.y < 150 )
+    {
+      if(yAngulo < 0)
+        line(destinationImage, Point(264,19), Point(264, 68), Scalar(255), 4, 8 );
+      else
+        line(destinationImage, Point(310,68), Point(264, 68), Scalar(255), 4, 8 );
+    }
+
+    if(puntoInicial.x <150 && puntoInicial.y >= 150 )
+    {
+      if(yAngulo < 0)
+        line(destinationImage, Point(21,215), Point(67, 215), Scalar(255), 4, 8 );
+      else
+        line(destinationImage, Point(67,258), Point(67, 215), Scalar(255), 4, 8 );
+    }
+
+    if(puntoInicial.x >=150 && puntoInicial.y >= 150 )
+    {
+      if(yAngulo < 0)
+        line(destinationImage, Point(307,223), Point(260, 223), Scalar(255), 4, 8 );
+      else
+        line(destinationImage, Point(260,264), Point(260, 223), Scalar(255), 4, 8 );
+    }
+  }
+  //line(sourceImage, Point(), Point( ), Scalar(255), 4, 8 );
 }
