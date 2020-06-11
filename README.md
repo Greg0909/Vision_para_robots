@@ -11,17 +11,17 @@ This will compile the program and move the executable to the 'bin' folder.
 # Running
 To run the program open the project folder on a terminal an type:
    
-   ./bin/main
+    ./bin/main
    
 # Functionallities.
     
     Work with a camera
-       - Verify camera input
-       - Pause real time video
+       -Verify camera input
+       -Pause real time video
         
     Work with an input video
-       - Verify video input
-       - Pause input video
+       -Verify video input
+       -Pause input video
     
     Apply the RGB color model
     Apply the YIQ color model
@@ -29,12 +29,12 @@ To run the program open the project folder on a terminal an type:
     Obtain histograms
     Highlight on a histogram the color per pixel selected
     Binarize images
-       - Set a binarization umbral
+       -Set a binarization umbral
     Filter images
-       - Enhance images
-       - Dilate images
-       - Erode images
-       - apply a Sobel filter to images
+       -Enhance images
+       -Dilate images
+       -Erode images
+       -apply a Sobel filter to images
     Recognize objects
     Graph objects presence on a four axis space
     Flip images
