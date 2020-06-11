@@ -34,7 +34,7 @@ To run the program open the project folder on a terminal an type:
        -Enhance images
        -Dilate images
        -Erode images
-       -apply a Sobel filter to images
+       -Apply a Sobel filter to images
     Recognize objects
     Graph objects presence on a four axis space
     Flip images
